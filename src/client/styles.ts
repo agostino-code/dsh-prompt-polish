@@ -5,57 +5,96 @@ export const CSS = `
 #dsh-prompt-polish-style .pp-group {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   position: relative;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 20px;
 }
 
+/* DSH native-style rounded pill button */
 #dsh-prompt-polish-style .pp-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 5px;
   height: 28px;
-  padding: 0 8px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.28));
-  border-radius: var(--dsw-radius-sm, 6px);
+  padding: 0 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.24));
   background: transparent;
-  color: var(--dsw-alias-label-secondary, inherit);
+  color: var(--dsw-alias-label-secondary, #9ca3af);
   font-size: 12px;
-  line-height: 1;
   font-weight: 500;
+  line-height: 1;
   cursor: pointer;
   white-space: nowrap;
   outline: none;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
 
 #dsh-prompt-polish-style .pp-btn:hover:not(:disabled) {
   background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.12));
-  border-color: var(--dsw-focus-ring-color, #4a7cff);
-  color: var(--dsw-alias-label-primary, inherit);
+  border-color: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38));
+  color: var(--dsw-alias-label-primary, #ffffff);
+}
+
+#dsh-prompt-polish-style .pp-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, #4a7cff);
 }
 
 #dsh-prompt-polish-style .pp-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
-  border-color: var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.2));
+  border-color: var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.15));
 }
 
+/* Context pill button with state indicator */
+#dsh-prompt-polish-style .pp-btn-context {
+  padding: 0 10px;
+}
+
+#dsh-prompt-polish-style .pp-btn-context-active {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.12));
+  border-color: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38));
+  color: var(--dsw-alias-label-primary, #ffffff);
+}
+
+#dsh-prompt-polish-style .pp-btn-context-inactive {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+#dsh-prompt-polish-style .pp-context-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  display: inline-block;
+  flex: none;
+}
+
+#dsh-prompt-polish-style .pp-context-dot-off {
+  background: var(--dsw-alias-label-tertiary, #6b7280);
+}
+
+/* Polishing in-flight button */
 #dsh-prompt-polish-style .pp-btn-busy {
-  border-color: #ff9800;
-  color: var(--dsw-alias-label-primary, inherit);
+  border-color: #f59e0b;
+  color: var(--dsw-alias-label-primary, #ffffff);
 }
 
 #dsh-prompt-polish-style .pp-btn-busy:hover {
-  background: rgba(255, 152, 0, 0.12) !important;
-  border-color: #f44336 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
 }
 
+/* Undo button */
 #dsh-prompt-polish-style .pp-btn-undo {
-  padding: 0 6px;
-  border-color: var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.3));
+  padding: 0 9px;
+  border-color: var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.28));
 }
 
 #dsh-prompt-polish-style .pp-btn-undo:hover {
@@ -63,32 +102,24 @@ export const CSS = `
   color: #10b981;
 }
 
-#dsh-prompt-polish-style .pp-btn-toggle {
-  padding: 0 6px;
-  font-size: 11px;
-}
-
-#dsh-prompt-polish-style .pp-btn-toggle-active {
-  background: rgba(74, 124, 255, 0.15) !important;
-  border-color: #4a7cff !important;
-  color: #4a7cff !important;
-}
-
+/* Rounded select */
 #dsh-prompt-polish-style .pp-select {
   height: 28px;
-  padding: 0 4px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.28));
-  border-radius: var(--dsw-radius-sm, 6px);
+  padding: 0 8px;
+  border-radius: 9999px;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.24));
   background: transparent;
-  color: var(--dsw-alias-label-secondary, inherit);
-  font-size: 11px;
+  color: var(--dsw-alias-label-secondary, #9ca3af);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 #dsh-prompt-polish-style .pp-select:hover {
-  border-color: var(--dsw-focus-ring-color, #4a7cff);
+  border-color: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38));
+  color: var(--dsw-alias-label-primary, #ffffff);
 }
 
 #dsh-prompt-polish-style .pp-select option {
@@ -96,21 +127,30 @@ export const CSS = `
   color: var(--dsw-alias-label-primary, #ffffff);
 }
 
+/* Elegant gray monochrome icons */
+#dsh-prompt-polish-style .pp-icon-svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  display: inline-block;
+  fill: currentColor;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+
+#dsh-prompt-polish-style .pp-btn:hover .pp-icon-svg {
+  opacity: 1;
+}
+
 #dsh-prompt-polish-style .pp-spin {
   width: 12px;
   height: 12px;
   border: 2px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.4));
-  border-top-color: transparent;
+  border-top-color: #f59e0b;
   border-radius: 50%;
   animation: ppSpin 0.7s linear infinite;
   display: inline-block;
   flex: none;
-}
-
-#dsh-prompt-polish-style .pp-icon {
-  font-size: 13px;
-  line-height: 1;
-  display: inline-block;
 }
 
 #dsh-prompt-polish-style .pp-err {
@@ -128,35 +168,35 @@ export const CSS = `
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  animation: ppFadeIn 0.15s ease;
+  padding: 24px;
+  animation: ppFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #dsh-prompt-polish-style .pp-modal {
   background: var(--dsw-alias-bg-surface-l1, #1e1e1e);
   border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.25));
-  border-radius: var(--dsw-radius-md, 10px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  border-radius: var(--dsw-radius-md, 12px);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
   color: var(--dsw-alias-label-primary, #e0e0e0);
-  width: min(880px, 95vw);
+  width: min(920px, 95vw);
   max-height: 86vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: ppScaleUp 0.15s ease;
+  animation: ppScaleUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #dsh-prompt-polish-style .pp-modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.18));
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.16));
   font-size: 14px;
   font-weight: 600;
 }
@@ -168,8 +208,9 @@ export const CSS = `
   line-height: 1;
   color: var(--dsw-alias-label-tertiary, #888);
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
 }
 
 #dsh-prompt-polish-style .pp-modal-close:hover {
@@ -179,9 +220,9 @@ export const CSS = `
 
 #dsh-prompt-polish-style .pp-modal-body {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: 14px;
-  padding: 14px 16px;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 16px;
+  padding: 16px 18px;
   overflow-y: auto;
   flex: 1;
   min-height: 240px;
@@ -197,9 +238,9 @@ export const CSS = `
 #dsh-prompt-polish-style .pp-pane {
   display: flex;
   flex-direction: column;
-  background: var(--dsw-alias-bg-surface-l2, rgba(0, 0, 0, 0.2));
+  background: var(--dsw-alias-bg-surface-l2, rgba(0, 0, 0, 0.25));
   border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.2));
-  border-radius: var(--dsw-radius-sm, 6px);
+  border-radius: var(--dsw-radius-sm, 8px);
   overflow: hidden;
 }
 
@@ -207,7 +248,7 @@ export const CSS = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -218,10 +259,10 @@ export const CSS = `
 }
 
 #dsh-prompt-polish-style .pp-pane-content {
-  padding: 10px 12px;
+  padding: 12px 14px;
   font-family: inherit;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-y: auto;
@@ -233,16 +274,16 @@ export const CSS = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  border-top: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.18));
+  padding: 12px 18px;
+  border-top: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.16));
   background: var(--dsw-alias-bg-surface-l2, rgba(0, 0, 0, 0.15));
-  gap: 10px;
+  gap: 12px;
 }
 
 #dsh-prompt-polish-style .pp-foot-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
   color: var(--dsw-alias-label-secondary, #aaa);
 }
@@ -255,10 +296,10 @@ export const CSS = `
 
 #dsh-prompt-polish-style .pp-action-btn {
   height: 30px;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 12px;
   font-weight: 500;
-  border-radius: var(--dsw-radius-sm, 6px);
+  border-radius: 9999px;
   cursor: pointer;
   border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.28));
   background: transparent;

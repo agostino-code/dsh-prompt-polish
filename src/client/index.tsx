@@ -3,13 +3,14 @@
  *
  * Injects into `conversation.input.right`.
  * Provides:
+ * - 🧠 Context-aware prompt enrichment (workspace path, active goal, tasks)
  * - ✨ Sparkle Polish button with SSE real-time streaming
  * - 🔍 Side-by-side Diff / Review modal with Accept, Discard & Copy
- * - 🧠 Context-aware prompt enrichment (cwd, active goal, tasks)
  * - 🎨 4 Rewrite styles (Balanced, Concise, Detailed, Code)
  * - ↩️ Instant Undo button to restore original draft
  * - ⏹️ Abort / Cancel during generation
  * - 🌐 Full i18n (Italian, English, Chinese)
+ * - 💅 Elegant rounded pill design with monochrome gray icons conforming to DSH aesthetics
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -21,11 +22,19 @@ import { ensureStyle, PLUGIN } from './styles.ts'
 export const name = PLUGIN
 export const inject = ['slots']
 
+interface WorkspaceItem {
+  workspaceId?: string
+  path?: string
+  title?: string
+  sessionIds?: readonly string[]
+}
+
 interface InputRightProps {
   useInput: (selector: (state: InputState) => unknown) => unknown
   inputActions?: InputActions
   sessionId?: string
-  useSessions?: (selector: (state: { byId: Record<string, { cwd?: string }> }) => unknown) => unknown
+  useWorkspaces?: (selector: (state: { items?: readonly WorkspaceItem[] }) => unknown) => unknown
+  useSessions?: (selector: (state: { byId?: Record<string, { cwd?: string }> }) => unknown) => unknown
   useProjection?: (key: string) => unknown
 }
 
@@ -48,10 +57,36 @@ export function apply(ctx: ClientContext): unknown {
 const STORAGE_STYLE_KEY = 'dsh_prompt_polish_style'
 const STORAGE_CONTEXT_KEY = 'dsh_prompt_polish_context'
 
+// Elegant monochrome SVG icons in shades of gray
+function IconBrain() {
+  return (
+    <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
+      <path d="M12 3c-2.4 0-4.4 1.7-4.9 4A4.5 4.5 0 0 0 3 11.5c0 1.4.6 2.6 1.6 3.4A4.5 4.5 0 0 0 8 19.5c.3 0 .7 0 1-.1V21h6v-1.6c.3.1.7.1 1 .1a4.5 4.5 0 0 0 3.4-4.6c1-.8 1.6-2 1.6-3.4a4.5 4.5 0 0 0-4.1-4.5C16.4 4.7 14.4 3 12 3zm-1 2c1.7 0 3.1 1.2 3.4 2.8l.2.8.8.1c1.4.2 2.5 1.4 2.5 2.8 0 .4-.1.8-.3 1.2l-.4.8.7.6c.7.6 1.1 1.5 1.1 2.4 0 1.9-1.5 3.4-3.4 3.4-.4 0-.8-.1-1.1-.2l-.8-.3-.5.7c-.5.8-1.4 1.3-2.3 1.3V19h-2v2.4c-.9 0-1.8-.5-2.3-1.3l-.5-.7-.8.3c-.3.1-.7.2-1.1.2-1.9 0-3.4-1.5-3.4-3.4 0-.9.4-1.8 1.1-2.4l.7-.6-.4-.8c-.2-.4-.3-.8-.3-1.2 0-1.4 1.1-2.6 2.5-2.8l.8-.1.2-.8C7.9 6.2 9.3 5 11 5z" />
+    </svg>
+  )
+}
+
+function IconSparkle() {
+  return (
+    <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
+      <path d="M12 2.5c.3 3.6 2.6 6.5 6.2 7.1.4.1.4.7 0 .8-3.6.6-5.9 3.5-6.2 7.1 0 .4-.6.4-.7 0-.3-3.6-2.6-6.5-6.2-7.1-.4-.1-.4-.7 0-.8 3.6-.6 5.9-3.5 6.2-7.1.1-.4.7-.4.7 0zm6.5 11.5c.2 1.8 1.3 3.2 3.1 3.5.2 0 .2.4 0 .4-1.8.3-2.9 1.7-3.1 3.5 0 .2-.3.2-.4 0-.2-1.8-1.3-3.2-3.1-3.5-.2 0-.2-.4 0-.4 1.8-.3 2.9-1.7 3.1-3.5.1-.2.3-.2.4 0z" />
+    </svg>
+  )
+}
+
+function IconUndo() {
+  return (
+    <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
+      <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+    </svg>
+  )
+}
+
 function PromptPolishControl({
   useInput,
   inputActions,
   sessionId,
+  useWorkspaces,
   useSessions,
   useProjection,
 }: InputRightProps) {
@@ -60,7 +95,7 @@ function PromptPolishControl({
   const [error, setError] = useState<string | null>(null)
   const [originalDraft, setOriginalDraft] = useState<string | null>(null)
 
-  // Style state
+  // Style selection
   const [style, setStyle] = useState<PolishStyle>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_STYLE_KEY)
@@ -73,7 +108,7 @@ function PromptPolishControl({
     return 'balanced'
   })
 
-  // Context-aware toggle
+  // Context-aware toggle state (stored in localStorage)
   const [withContext, setWithContext] = useState<boolean>(() => {
     try {
       return localStorage.getItem(STORAGE_CONTEXT_KEY) !== 'false'
@@ -94,8 +129,16 @@ function PromptPolishControl({
   const lang = detectLang()
   const loc = LOCALES[lang]
 
-  // Read session context
-  const cwd = useSessions?.((s) => (sessionId ? s.byId[sessionId]?.cwd : undefined)) as string | undefined
+  // Extract session context through DSH hooks
+  const workspacesList = useWorkspaces?.((s) => s.items) as readonly WorkspaceItem[] | undefined
+  const matchedWorkspace = workspacesList?.find(
+    (w) => (sessionId ? w.sessionIds?.includes(sessionId) : false)
+  ) || workspacesList?.[0]
+  const resolvedCwd = matchedWorkspace?.path || matchedWorkspace?.title
+
+  const sessionCwd = useSessions?.((s) => (sessionId && s.byId ? s.byId[sessionId]?.cwd : undefined)) as string | undefined
+  const activeCwd = resolvedCwd || sessionCwd
+
   const goalObj = useProjection?.('goal') as { objective?: string } | undefined
   const todosList = useProjection?.('todos') as Array<{ content?: string }> | undefined
 
@@ -130,6 +173,7 @@ function PromptPolishControl({
     }
   }
 
+  // Toggle context button
   const toggleContext = () => {
     setWithContext((prev) => {
       const next = !prev
@@ -172,10 +216,10 @@ function PromptPolishControl({
     const controller = new AbortController()
     abortControllerRef.current = controller
 
-    // Assemble context if enabled
+    // Assemble context payload if enabled
     const contextData = withContext
       ? {
-          cwd: cwd || undefined,
+          cwd: activeCwd || undefined,
           goal: goalObj?.objective || undefined,
           todos: Array.isArray(todosList) ? todosList.map((t) => t.content).filter(Boolean) : undefined,
         }
@@ -253,7 +297,7 @@ function PromptPolishControl({
               throw new Error(ev.error || loc.failed)
             }
           } catch (parseErr) {
-            // Ignore unparsed lines
+            // ignore malformed lines
           }
         }
       }
@@ -263,7 +307,7 @@ function PromptPolishControl({
       }
     } catch (e: unknown) {
       if ((e as Error)?.name === 'AbortError') {
-        // user aborted
+        // user cancelled
       } else {
         const msg = e instanceof Error ? e.message : String(e)
         setError(msg)
@@ -275,7 +319,7 @@ function PromptPolishControl({
         abortControllerRef.current = null
       }
     }
-  }, [busy, inputActions, text, style, sessionId, withContext, cwd, goalObj, todosList, loc, onCancel])
+  }, [busy, inputActions, text, style, sessionId, withContext, activeCwd, goalObj, todosList, loc, onCancel])
 
   const onAccept = () => {
     if (inputActions && previewPolished.trim().length > 0) {
@@ -313,21 +357,26 @@ function PromptPolishControl({
 
   return (
     <div className="pp-group">
-      {/* Context-aware toggle pill */}
+      {/* Elegant rounded pill: Context Toggle */}
       <button
         type="button"
-        className={`pp-btn pp-btn-toggle ${withContext ? 'pp-btn-toggle-active' : ''}`}
+        className={`pp-btn pp-btn-context ${
+          withContext ? 'pp-btn-context-active' : 'pp-btn-context-inactive'
+        }`}
         onClick={toggleContext}
-        title={loc.contextTooltip}
+        title={withContext ? loc.contextTooltipActive : loc.contextTooltipInactive}
         aria-label={loc.context}
+        aria-pressed={withContext}
       >
-        <span className="pp-icon" aria-hidden="true">
-          🧠
-        </span>
+        <IconBrain />
         <span>{loc.context}</span>
+        <span
+          className={`pp-context-dot ${withContext ? '' : 'pp-context-dot-off'}`}
+          aria-hidden="true"
+        />
       </button>
 
-      {/* Style selector */}
+      {/* Elegant rounded pill: Style selector */}
       <select
         className="pp-select"
         value={style}
@@ -342,7 +391,7 @@ function PromptPolishControl({
         <option value="code">{loc.styles.code}</option>
       </select>
 
-      {/* Polish / Cancel button */}
+      {/* Elegant rounded pill: Polish / Cancel action */}
       <button
         type="button"
         className={`pp-btn ${busy ? 'pp-btn-busy' : ''}`}
@@ -353,17 +402,11 @@ function PromptPolishControl({
         title={busy ? loc.cancelTooltip : loc.tooltip}
         aria-label={busy ? loc.cancel : loc.polish}
       >
-        {busy ? (
-          <span className="pp-spin" aria-hidden="true" />
-        ) : (
-          <span className="pp-icon" aria-hidden="true">
-            ✨
-          </span>
-        )}
-        <span className="pp-text">{busy ? ` ${loc.cancel}` : ` ${loc.polish}`}</span>
+        {busy ? <span className="pp-spin" aria-hidden="true" /> : <IconSparkle />}
+        <span className="pp-text">{busy ? loc.cancel : loc.polish}</span>
       </button>
 
-      {/* Undo button */}
+      {/* Elegant rounded pill: Undo button */}
       {originalDraft !== null && !busy && (
         <button
           type="button"
@@ -372,14 +415,12 @@ function PromptPolishControl({
           title={loc.undoTooltip}
           aria-label={loc.undo}
         >
-          <span className="pp-icon" aria-hidden="true">
-            ↩️
-          </span>
+          <IconUndo />
           <span className="pp-text">{loc.undo}</span>
         </button>
       )}
 
-      {/* Error badge */}
+      {/* Error status notice */}
       {error !== null && (
         <span className="pp-err" role="status" title={error}>
           {error}
@@ -390,7 +431,7 @@ function PromptPolishControl({
       {previewOpen && (
         <div className="pp-modal-backdrop" onClick={onDiscard}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
+            {/* Modal Header */}
             <div className="pp-modal-head">
               <span>{loc.previewTitle}</span>
               <button
@@ -403,9 +444,9 @@ function PromptPolishControl({
               </button>
             </div>
 
-            {/* Body (Side-by-side) */}
+            {/* Modal Body: Side-by-side comparison */}
             <div className="pp-modal-body">
-              {/* Left pane: Original */}
+              {/* Left pane: Original draft */}
               <div className="pp-pane">
                 <div className="pp-pane-head">
                   <span>{loc.original}</span>
@@ -413,12 +454,16 @@ function PromptPolishControl({
                 <div className="pp-pane-content">{previewOriginal}</div>
               </div>
 
-              {/* Right pane: AI Polished */}
+              {/* Right pane: AI Polished draft (live streaming) */}
               <div className="pp-pane">
                 <div className="pp-pane-head">
                   <span>{loc.polished}</span>
                   {previewStatus === 'streaming' && (
-                    <span className="pp-spin" aria-hidden="true" style={{ width: 10, height: 10 }} />
+                    <span
+                      className="pp-spin"
+                      aria-hidden="true"
+                      style={{ width: 10, height: 10 }}
+                    />
                   )}
                 </div>
                 <div className="pp-pane-content">
@@ -427,7 +472,7 @@ function PromptPolishControl({
               </div>
             </div>
 
-            {/* Footer */}
+            {/* Modal Footer */}
             <div className="pp-modal-foot">
               <div className="pp-foot-status">
                 {previewStatus === 'streaming' ? (
