@@ -10,7 +10,7 @@
  * - ↩️ Instant Undo button to restore original draft
  * - ⏹️ Abort / Cancel during generation
  * - 🌐 Full i18n (Italian, English, Chinese)
- * - 💅 Elegant rounded pill design with monochrome gray icons conforming to DSH aesthetics
+ * - 💅 Native DSH ghost style: horizontal layout, 14px monochrome gray icons, transparent background, interactive hover
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -57,7 +57,7 @@ export function apply(ctx: ClientContext): unknown {
 const STORAGE_STYLE_KEY = 'dsh_prompt_polish_style'
 const STORAGE_CONTEXT_KEY = 'dsh_prompt_polish_context'
 
-// Elegant monochrome SVG icons in shades of gray
+// Native DSH style 14px monochrome SVG icons
 function IconBrain() {
   return (
     <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
@@ -78,6 +78,14 @@ function IconUndo() {
   return (
     <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
       <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+    </svg>
+  )
+}
+
+function IconChevronDown() {
+  return (
+    <svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" aria-hidden="true">
+      <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" />
     </svg>
   )
 }
@@ -108,7 +116,7 @@ function PromptPolishControl({
     return 'balanced'
   })
 
-  // Context-aware toggle state (stored in localStorage)
+  // Context-aware toggle state
   const [withContext, setWithContext] = useState<boolean>(() => {
     try {
       return localStorage.getItem(STORAGE_CONTEXT_KEY) !== 'false'
@@ -173,7 +181,6 @@ function PromptPolishControl({
     }
   }
 
-  // Toggle context button
   const toggleContext = () => {
     setWithContext((prev) => {
       const next = !prev
@@ -216,7 +223,6 @@ function PromptPolishControl({
     const controller = new AbortController()
     abortControllerRef.current = controller
 
-    // Assemble context payload if enabled
     const contextData = withContext
       ? {
           cwd: activeCwd || undefined,
@@ -357,12 +363,10 @@ function PromptPolishControl({
 
   return (
     <div className="pp-group">
-      {/* Elegant rounded pill: Context Toggle */}
+      {/* Native DSH trigger: Context Toggle */}
       <button
         type="button"
-        className={`pp-btn pp-btn-context ${
-          withContext ? 'pp-btn-context-active' : 'pp-btn-context-inactive'
-        }`}
+        className={`pp-btn ${withContext ? 'pp-btn-context-active' : 'pp-btn-context-inactive'}`}
         onClick={toggleContext}
         title={withContext ? loc.contextTooltipActive : loc.contextTooltipInactive}
         aria-label={loc.context}
@@ -376,22 +380,27 @@ function PromptPolishControl({
         />
       </button>
 
-      {/* Elegant rounded pill: Style selector */}
-      <select
-        className="pp-select"
-        value={style}
-        onChange={handleStyleChange}
-        disabled={busy}
-        title={loc.styleTooltip}
-        aria-label="Style"
-      >
-        <option value="balanced">{loc.styles.balanced}</option>
-        <option value="concise">{loc.styles.concise}</option>
-        <option value="detailed">{loc.styles.detailed}</option>
-        <option value="code">{loc.styles.code}</option>
-      </select>
+      {/* Native DSH trigger: Style dropdown with custom chevron */}
+      <div className="pp-select-wrapper">
+        <select
+          className="pp-select"
+          value={style}
+          onChange={handleStyleChange}
+          disabled={busy}
+          title={loc.styleTooltip}
+          aria-label="Style"
+        >
+          <option value="balanced">{loc.styles.balanced}</option>
+          <option value="concise">{loc.styles.concise}</option>
+          <option value="detailed">{loc.styles.detailed}</option>
+          <option value="code">{loc.styles.code}</option>
+        </select>
+        <span className="pp-select-chevron" aria-hidden="true">
+          <IconChevronDown />
+        </span>
+      </div>
 
-      {/* Elegant rounded pill: Polish / Cancel action */}
+      {/* Native DSH trigger: Polish / Cancel action */}
       <button
         type="button"
         className={`pp-btn ${busy ? 'pp-btn-busy' : ''}`}
@@ -403,20 +412,20 @@ function PromptPolishControl({
         aria-label={busy ? loc.cancel : loc.polish}
       >
         {busy ? <span className="pp-spin" aria-hidden="true" /> : <IconSparkle />}
-        <span className="pp-text">{busy ? loc.cancel : loc.polish}</span>
+        <span>{busy ? loc.cancel : loc.polish}</span>
       </button>
 
-      {/* Elegant rounded pill: Undo button */}
+      {/* Native DSH trigger: Undo button */}
       {originalDraft !== null && !busy && (
         <button
           type="button"
-          className="pp-btn pp-btn-undo"
+          className="pp-btn"
           onClick={onUndo}
           title={loc.undoTooltip}
           aria-label={loc.undo}
         >
           <IconUndo />
-          <span className="pp-text">{loc.undo}</span>
+          <span>{loc.undo}</span>
         </button>
       )}
 

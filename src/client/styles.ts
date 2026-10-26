@@ -4,71 +4,66 @@ export const STYLE_ID = 'dsh-prompt-polish-style'
 export const CSS = `
 #dsh-prompt-polish-style .pp-group {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  gap: 5px;
+  gap: 2px;
   position: relative;
   font-family: inherit;
   font-size: 13px;
   line-height: 20px;
+  height: 28px;
 }
 
-/* DSH native-style rounded pill button */
+/* DSH native-conforming ghost button style */
 #dsh-prompt-polish-style .pp-btn {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   height: 28px;
-  padding: 0 10px;
-  border-radius: 9999px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.24));
+  padding: 0 6px 0 6px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  border: none;
   background: transparent;
   color: var(--dsw-alias-label-secondary, #9ca3af);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 20px;
   cursor: pointer;
   white-space: nowrap;
   outline: none;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.12s ease, color 0.12s ease;
   user-select: none;
 }
 
 #dsh-prompt-polish-style .pp-btn:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.12));
-  border-color: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38));
+  background: var(--dsw-alias-interactive-bg-hover, rgba(255, 255, 255, 0.08));
   color: var(--dsw-alias-label-primary, #ffffff);
 }
 
 #dsh-prompt-polish-style .pp-btn:focus-visible {
-  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, #4a7cff);
+  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary, #4a7cff));
 }
 
 #dsh-prompt-polish-style .pp-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  border-color: var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.15));
+  color: var(--dsw-alias-label-dimmed, rgba(156, 163, 175, 0.4));
+  cursor: default;
+  opacity: 0.5;
 }
 
-/* Context pill button with state indicator */
-#dsh-prompt-polish-style .pp-btn-context {
-  padding: 0 10px;
-}
-
+/* Context toggle state indicator */
 #dsh-prompt-polish-style .pp-btn-context-active {
-  background: var(--dsw-alias-interactive-bg-hover, rgba(128, 128, 128, 0.12));
-  border-color: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38));
   color: var(--dsw-alias-label-primary, #ffffff);
 }
 
 #dsh-prompt-polish-style .pp-btn-context-inactive {
-  opacity: 0.65;
-  border-style: dashed;
+  color: var(--dsw-alias-label-tertiary, #6b7280);
 }
 
 #dsh-prompt-polish-style .pp-context-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #10b981;
   display: inline-block;
@@ -76,50 +71,56 @@ export const CSS = `
 }
 
 #dsh-prompt-polish-style .pp-context-dot-off {
-  background: var(--dsw-alias-label-tertiary, #6b7280);
+  background: var(--dsw-alias-label-caption, #4b5563);
 }
 
-/* Polishing in-flight button */
+/* Polishing in-flight state */
 #dsh-prompt-polish-style .pp-btn-busy {
-  border-color: #f59e0b;
-  color: var(--dsw-alias-label-primary, #ffffff);
+  color: #f59e0b;
 }
 
 #dsh-prompt-polish-style .pp-btn-busy:hover {
-  background: rgba(239, 68, 68, 0.15) !important;
-  border-color: #ef4444 !important;
+  background: var(--dsw-alias-interactive-bg-hover-danger, rgba(239, 68, 68, 0.15)) !important;
   color: #ef4444 !important;
 }
 
-/* Undo button */
-#dsh-prompt-polish-style .pp-btn-undo {
-  padding: 0 9px;
-  border-color: var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.28));
+/* Style select trigger wrapper matching DSH dropdowns */
+#dsh-prompt-polish-style .pp-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
 }
 
-#dsh-prompt-polish-style .pp-btn-undo:hover {
-  border-color: #10b981;
-  color: #10b981;
-}
-
-/* Rounded select */
 #dsh-prompt-polish-style .pp-select {
   height: 28px;
-  padding: 0 8px;
-  border-radius: 9999px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.24));
+  padding: 0 18px 0 6px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  border: none;
   background: transparent;
   color: var(--dsw-alias-label-secondary, #9ca3af);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 20px;
   cursor: pointer;
   outline: none;
-  transition: all 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
 #dsh-prompt-polish-style .pp-select:hover {
-  border-color: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38));
+  background: var(--dsw-alias-interactive-bg-hover, rgba(255, 255, 255, 0.08));
   color: var(--dsw-alias-label-primary, #ffffff);
+}
+
+#dsh-prompt-polish-style .pp-select-chevron {
+  position: absolute;
+  right: 5px;
+  pointer-events: none;
+  color: var(--dsw-alias-label-caption, #6b7280);
+  display: inline-flex;
+  align-items: center;
 }
 
 #dsh-prompt-polish-style .pp-select option {
@@ -127,25 +128,22 @@ export const CSS = `
   color: var(--dsw-alias-label-primary, #ffffff);
 }
 
-/* Elegant gray monochrome icons */
+/* DSH native-conforming 14px monochrome SVG icons */
 #dsh-prompt-polish-style .pp-icon-svg {
   width: 14px;
   height: 14px;
   flex: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   fill: currentColor;
-  opacity: 0.85;
-  transition: opacity 0.15s ease;
-}
-
-#dsh-prompt-polish-style .pp-btn:hover .pp-icon-svg {
-  opacity: 1;
+  color: inherit;
 }
 
 #dsh-prompt-polish-style .pp-spin {
   width: 12px;
   height: 12px;
-  border: 2px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.4));
+  border: 2px solid rgba(156, 163, 175, 0.25);
   border-top-color: #f59e0b;
   border-radius: 50%;
   animation: ppSpin 0.7s linear infinite;
@@ -156,7 +154,7 @@ export const CSS = `
 #dsh-prompt-polish-style .pp-err {
   font-size: 11px;
   color: var(--dsw-alias-state-error-primary, #e5484d);
-  max-width: 220px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -209,7 +207,7 @@ export const CSS = `
   color: var(--dsw-alias-label-tertiary, #888);
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 9999px;
+  border-radius: var(--dsw-radius-sm, 6px);
   transition: all 0.15s ease;
 }
 
@@ -295,11 +293,11 @@ export const CSS = `
 }
 
 #dsh-prompt-polish-style .pp-action-btn {
-  height: 30px;
-  padding: 0 14px;
+  height: 28px;
+  padding: 0 12px;
   font-size: 12px;
   font-weight: 500;
-  border-radius: 9999px;
+  border-radius: var(--dsw-radius-sm, 6px);
   cursor: pointer;
   border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.28));
   background: transparent;
