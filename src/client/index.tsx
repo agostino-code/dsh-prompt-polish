@@ -5,15 +5,16 @@
  * Provides:
  * - 🧠 Context-aware prompt enrichment (workspace path, active goal, tasks)
  * - ✨ Sparkle Polish button with SSE real-time streaming
- * - 🔍 Side-by-side Diff / Review modal with Accept, Discard & Copy
+ * - 🔍 Side-by-side Diff / Review modal with Accept, Discard & Copy (portaled to document.body)
  * - 🎨 4 Rewrite styles (Balanced, Concise, Detailed, Code)
  * - ↩️ Instant Undo button to restore original draft
  * - ⏹️ Abort / Cancel during generation
  * - 🌐 Full i18n (Italian, English, Chinese)
- * - 💅 Native DSH ghost style: horizontal layout, 14px monochrome gray icons, transparent background, interactive hover
+ * - 💅 Native DSH ghost style: horizontal layout, 16px monochrome gray icons, transparent background, interactive hover
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type { InputActions, InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { detectLang, LOCALES, type PolishStyle } from './locales.ts'
@@ -57,35 +58,49 @@ export function apply(ctx: ClientContext): unknown {
 const STORAGE_STYLE_KEY = 'dsh_prompt_polish_style'
 const STORAGE_CONTEXT_KEY = 'dsh_prompt_polish_context'
 
-// Native DSH style 14px monochrome SVG icons
-function IconBrain() {
+// Native DSH style 16x16 monochrome SVG icons
+// IconContextInjectionOutlineRegular (exact DSH geometry)
+function IconContextInjection() {
   return (
-    <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
-      <path d="M12 3c-2.4 0-4.4 1.7-4.9 4A4.5 4.5 0 0 0 3 11.5c0 1.4.6 2.6 1.6 3.4A4.5 4.5 0 0 0 8 19.5c.3 0 .7 0 1-.1V21h6v-1.6c.3.1.7.1 1 .1a4.5 4.5 0 0 0 3.4-4.6c1-.8 1.6-2 1.6-3.4a4.5 4.5 0 0 0-4.1-4.5C16.4 4.7 14.4 3 12 3zm-1 2c1.7 0 3.1 1.2 3.4 2.8l.2.8.8.1c1.4.2 2.5 1.4 2.5 2.8 0 .4-.1.8-.3 1.2l-.4.8.7.6c.7.6 1.1 1.5 1.1 2.4 0 1.9-1.5 3.4-3.4 3.4-.4 0-.8-.1-1.1-.2l-.8-.3-.5.7c-.5.8-1.4 1.3-2.3 1.3V19h-2v2.4c-.9 0-1.8-.5-2.3-1.3l-.5-.7-.8.3c-.3.1-.7.2-1.1.2-1.9 0-3.4-1.5-3.4-3.4 0-.9.4-1.8 1.1-2.4l.7-.6-.4-.8c-.2-.4-.3-.8-.3-1.2 0-1.4 1.1-2.6 2.5-2.8l.8-.1.2-.8C7.9 6.2 9.3 5 11 5z" />
+    <svg viewBox="0 0 16 16" className="pp-icon-svg" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1">
+      <path d="M2.5 7.5L5.5 10.5L13.5 2.5" />
+      <path d="M5.5 5L8 7.5L10.5 5" />
+      <path d="M5.5 11H10.5" />
     </svg>
   )
 }
 
-function IconSparkle() {
+// IconEnhanceOutlineRegular (exact DSH geometry)
+function IconEnhance() {
   return (
-    <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
-      <path d="M12 2.5c.3 3.6 2.6 6.5 6.2 7.1.4.1.4.7 0 .8-3.6.6-5.9 3.5-6.2 7.1 0 .4-.6.4-.7 0-.3-3.6-2.6-6.5-6.2-7.1-.4-.1-.4-.7 0-.8 3.6-.6 5.9-3.5 6.2-7.1.1-.4.7-.4.7 0zm6.5 11.5c.2 1.8 1.3 3.2 3.1 3.5.2 0 .2.4 0 .4-1.8.3-2.9 1.7-3.1 3.5 0 .2-.3.2-.4 0-.2-1.8-1.3-3.2-3.1-3.5-.2 0-.2-.4 0-.4 1.8-.3 2.9-1.7 3.1-3.5.1-.2.3-.2.4 0z" />
+    <svg viewBox="0 0 16 16" className="pp-icon-svg" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1">
+      <path d="M1.98486 2.95374H14.0151" />
+      <path d="M1.98486 6.31787H14.0151" />
+      <path d="M1.98486 9.68213H14.0151" />
+      <path d="M1.98486 13.0463H8.4627" />
     </svg>
   )
 }
 
+// IconListPenOutlineRegular (exact DSH geometry)
 function IconUndo() {
   return (
-    <svg viewBox="0 0 24 24" className="pp-icon-svg" aria-hidden="true">
-      <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+    <svg viewBox="0 0 16 16" className="pp-icon-svg" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1">
+      <path d="M4.5 5.5H12.5" />
+      <path d="M4.5 8.5H10.5" />
+      <path d="M4.5 11.5H8.5" />
+      <path d="M2.5 5.5H2.51" />
+      <path d="M2.5 8.5H2.51" />
+      <path d="M2.5 11.5H2.51" />
     </svg>
   )
 }
 
+// IconChevronDownOutlineRegular (exact DSH geometry)
 function IconChevronDown() {
   return (
-    <svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" aria-hidden="true">
-      <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" />
+    <svg viewBox="0 0 16 16" width="11" height="11" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1.2">
+      <path d="M3.5 6L8 10.5L12.5 6" />
     </svg>
   )
 }
@@ -361,167 +376,176 @@ function PromptPolishControl({
     }
   }, [originalDraft, inputActions])
 
-  return (
-    <div className="pp-group">
-      {/* Native DSH trigger: Context Toggle */}
-      <button
-        type="button"
-        className={`pp-btn ${withContext ? 'pp-btn-context-active' : 'pp-btn-context-inactive'}`}
-        onClick={toggleContext}
-        title={withContext ? loc.contextTooltipActive : loc.contextTooltipInactive}
-        aria-label={loc.context}
-        aria-pressed={withContext}
-      >
-        <IconBrain />
-        <span>{loc.context}</span>
-        <span
-          className={`pp-context-dot ${withContext ? '' : 'pp-context-dot-off'}`}
-          aria-hidden="true"
-        />
-      </button>
-
-      {/* Native DSH trigger: Style dropdown with custom chevron */}
-      <div className="pp-select-wrapper">
-        <select
-          className="pp-select"
-          value={style}
-          onChange={handleStyleChange}
-          disabled={busy}
-          title={loc.styleTooltip}
-          aria-label="Style"
-        >
-          <option value="balanced">{loc.styles.balanced}</option>
-          <option value="concise">{loc.styles.concise}</option>
-          <option value="detailed">{loc.styles.detailed}</option>
-          <option value="code">{loc.styles.code}</option>
-        </select>
-        <span className="pp-select-chevron" aria-hidden="true">
-          <IconChevronDown />
-        </span>
-      </div>
-
-      {/* Native DSH trigger: Polish / Cancel action */}
-      <button
-        type="button"
-        className={`pp-btn ${busy ? 'pp-btn-busy' : ''}`}
-        disabled={disabled && !busy}
-        onClick={() => {
-          void onPolish()
-        }}
-        title={busy ? loc.cancelTooltip : loc.tooltip}
-        aria-label={busy ? loc.cancel : loc.polish}
-      >
-        {busy ? <span className="pp-spin" aria-hidden="true" /> : <IconSparkle />}
-        <span>{busy ? loc.cancel : loc.polish}</span>
-      </button>
-
-      {/* Native DSH trigger: Undo button */}
-      {originalDraft !== null && !busy && (
-        <button
-          type="button"
-          className="pp-btn"
-          onClick={onUndo}
-          title={loc.undoTooltip}
-          aria-label={loc.undo}
-        >
-          <IconUndo />
-          <span>{loc.undo}</span>
-        </button>
-      )}
-
-      {/* Error status notice */}
-      {error !== null && (
-        <span className="pp-err" role="status" title={error}>
-          {error}
-        </span>
-      )}
-
-      {/* Diff / Review Modal */}
-      {previewOpen && (
-        <div className="pp-modal-backdrop" onClick={onDiscard}>
-          <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="pp-modal-head">
-              <span>{loc.previewTitle}</span>
-              <button
-                type="button"
-                className="pp-modal-close"
-                onClick={onDiscard}
-                title={loc.reject}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Modal Body: Side-by-side comparison */}
-            <div className="pp-modal-body">
-              {/* Left pane: Original draft */}
-              <div className="pp-pane">
-                <div className="pp-pane-head">
-                  <span>{loc.original}</span>
-                </div>
-                <div className="pp-pane-content">{previewOriginal}</div>
+  // Portaled Modal JSX (rendered onto document.body to avoid breaking composer bar layout)
+  const modalPortal =
+    previewOpen && typeof document !== 'undefined'
+      ? createPortal(
+          <div className="pp-modal-backdrop" onClick={onDiscard}>
+            <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
+              {/* Modal Header */}
+              <div className="pp-modal-head">
+                <span>{loc.previewTitle}</span>
+                <button
+                  type="button"
+                  className="pp-modal-close"
+                  onClick={onDiscard}
+                  title={loc.reject}
+                >
+                  ✕
+                </button>
               </div>
 
-              {/* Right pane: AI Polished draft (live streaming) */}
-              <div className="pp-pane">
-                <div className="pp-pane-head">
-                  <span>{loc.polished}</span>
-                  {previewStatus === 'streaming' && (
-                    <span
-                      className="pp-spin"
-                      aria-hidden="true"
-                      style={{ width: 10, height: 10 }}
-                    />
+              {/* Modal Body: Side-by-side comparison */}
+              <div className="pp-modal-body">
+                {/* Left pane: Original draft */}
+                <div className="pp-pane">
+                  <div className="pp-pane-head">
+                    <span>{loc.original}</span>
+                  </div>
+                  <div className="pp-pane-content">{previewOriginal}</div>
+                </div>
+
+                {/* Right pane: AI Polished draft (live streaming) */}
+                <div className="pp-pane">
+                  <div className="pp-pane-head">
+                    <span>{loc.polished}</span>
+                    {previewStatus === 'streaming' && (
+                      <span
+                        className="pp-spin"
+                        aria-hidden="true"
+                        style={{ width: 10, height: 10 }}
+                      />
+                    )}
+                  </div>
+                  <div className="pp-pane-content">
+                    {previewPolished || (previewStatus === 'streaming' ? '…' : '')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pp-modal-foot">
+                <div className="pp-foot-status">
+                  {previewStatus === 'streaming' ? (
+                    <>
+                      <span className="pp-spin" aria-hidden="true" />
+                      <span>{loc.streaming}</span>
+                    </>
+                  ) : (
+                    <span>
+                      {withContext ? '🧠 Context-Aware · ' : ''}
+                      {loc.completed}
+                    </span>
                   )}
                 </div>
-                <div className="pp-pane-content">
-                  {previewPolished || (previewStatus === 'streaming' ? '…' : '')}
+
+                <div className="pp-foot-actions">
+                  <button
+                    type="button"
+                    className="pp-action-btn"
+                    onClick={onCopy}
+                    disabled={!previewPolished}
+                  >
+                    {copied ? loc.copied : loc.copy}
+                  </button>
+                  <button type="button" className="pp-action-btn" onClick={onDiscard}>
+                    {loc.reject}
+                  </button>
+                  <button
+                    type="button"
+                    className="pp-action-btn pp-action-btn-primary"
+                    onClick={onAccept}
+                    disabled={!previewPolished}
+                  >
+                    {loc.accept}
+                  </button>
                 </div>
               </div>
             </div>
+          </div>,
+          document.body,
+        )
+      : null
 
-            {/* Modal Footer */}
-            <div className="pp-modal-foot">
-              <div className="pp-foot-status">
-                {previewStatus === 'streaming' ? (
-                  <>
-                    <span className="pp-spin" aria-hidden="true" />
-                    <span>{loc.streaming}</span>
-                  </>
-                ) : (
-                  <span>
-                    {withContext ? '🧠 Context-Aware · ' : ''}
-                    {loc.completed}
-                  </span>
-                )}
-              </div>
+  return (
+    <>
+      <div className="pp-group">
+        {/* Native DSH trigger: Context Toggle */}
+        <button
+          type="button"
+          className={`pp-btn ${withContext ? 'pp-btn-context-active' : 'pp-btn-context-inactive'}`}
+          onClick={toggleContext}
+          title={withContext ? loc.contextTooltipActive : loc.contextTooltipInactive}
+          aria-label={loc.context}
+          aria-pressed={withContext}
+        >
+          <IconContextInjection />
+          <span>{loc.context}</span>
+          <span
+            className={`pp-context-dot ${withContext ? '' : 'pp-context-dot-off'}`}
+            aria-hidden="true"
+          />
+        </button>
 
-              <div className="pp-foot-actions">
-                <button
-                  type="button"
-                  className="pp-action-btn"
-                  onClick={onCopy}
-                  disabled={!previewPolished}
-                >
-                  {copied ? loc.copied : loc.copy}
-                </button>
-                <button type="button" className="pp-action-btn" onClick={onDiscard}>
-                  {loc.reject}
-                </button>
-                <button
-                  type="button"
-                  className="pp-action-btn pp-action-btn-primary"
-                  onClick={onAccept}
-                  disabled={!previewPolished}
-                >
-                  {loc.accept}
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Native DSH trigger: Style dropdown with custom chevron */}
+        <div className="pp-select-wrapper">
+          <select
+            className="pp-select"
+            value={style}
+            onChange={handleStyleChange}
+            disabled={busy}
+            title={loc.styleTooltip}
+            aria-label="Style"
+          >
+            <option value="balanced">{loc.styles.balanced}</option>
+            <option value="concise">{loc.styles.concise}</option>
+            <option value="detailed">{loc.styles.detailed}</option>
+            <option value="code">{loc.styles.code}</option>
+          </select>
+          <span className="pp-select-chevron" aria-hidden="true">
+            <IconChevronDown />
+          </span>
         </div>
-      )}
-    </div>
+
+        {/* Native DSH trigger: Polish / Cancel action */}
+        <button
+          type="button"
+          className={`pp-btn ${busy ? 'pp-btn-busy' : ''}`}
+          disabled={disabled && !busy}
+          onClick={() => {
+            void onPolish()
+          }}
+          title={busy ? loc.cancelTooltip : loc.tooltip}
+          aria-label={busy ? loc.cancel : loc.polish}
+        >
+          {busy ? <span className="pp-spin" aria-hidden="true" /> : <IconEnhance />}
+          <span>{busy ? loc.cancel : loc.polish}</span>
+        </button>
+
+        {/* Native DSH trigger: Undo button */}
+        {originalDraft !== null && !busy && (
+          <button
+            type="button"
+            className="pp-btn"
+            onClick={onUndo}
+            title={loc.undoTooltip}
+            aria-label={loc.undo}
+          >
+            <IconUndo />
+            <span>{loc.undo}</span>
+          </button>
+        )}
+
+        {/* Error status notice */}
+        {error !== null && (
+          <span className="pp-err" role="status" title={error}>
+            {error}
+          </span>
+        )}
+      </div>
+
+      {/* Body-portaled modal (does not touch or break the input bar layout) */}
+      {modalPortal}
+    </>
   )
 }
