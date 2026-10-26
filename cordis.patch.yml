@@ -1,15 +1,11 @@
 # dsh-prompt-polish bundle patch
 #
-# Mounts the ✨ Prompt Polish button at the right end of the Web UI input toolbar.
-#
-# Configuration (optional):
-#   style     - default rewrite style: 'balanced' | 'concise' | 'detailed' | 'code' (default: balanced)
-#   maxTokens - maximum output tokens per polish pass (default: 2000)
-#   provider  - explicit LLM provider override. Omit to use DSH default model automatically.
-#   model     - explicit model override. Omit to use DSH default model automatically.
+# Configured for Copilot GPT-4o via DSH proxy provider
 - insert:
     - id: prompt-polish
       name: 'dsh-prompt-polish'
       config:
         style: balanced
         maxTokens: 2000
+        provider: proxy
+        model: copilot/gpt-4o

@@ -14,12 +14,19 @@ import type { Context } from '@deepseek-ai/cordis'
 import {
   BlockAssembler,
   createUserMessage,
-  deepFreeze,
   type FinishReason,
   type GenerateOptions,
   type Message,
   type StreamChunk,
 } from '@deepseek-ai/dsh-llm'
+
+function deepFreeze<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') return obj
+  for (const key of Object.keys(obj as object)) {
+    deepFreeze((obj as Record<string, unknown>)[key])
+  }
+  return Object.freeze(obj)
+}
 
 export const name = 'dsh-prompt-polish'
 export const inject = ['webServer', 'llm']
