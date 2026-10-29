@@ -11,9 +11,10 @@ Questo repository è un **fork modernizzato e potenziato** per **DSH 0.2.x** (in
 1. ⚡ **Streaming in tempo reale (Server-Sent Events / SSE)**:
    La generazione non avviene più "al buio": i token riscritti vengono inviati in streaming man mano che il modello li produce. È possibile seguire il testo in tempo reale.
 2. 🔍 **Finestra di confronto e revisione "Diff" (Side-by-side)**:
-   All'avvio della riscrittura si apre un popover/modale elegante con vista affiancata:
+   All'avvio della riscrittura si apre un modale elegante (isolato via `createPortal` su `document.body` per non alterare la barra inferiore):
    - **A sinistra**: la tua bozza originale.
    - **A destra**: la versione ottimizzata che si compone in tempo reale.
+   - **Selettore rapido modello**: possibilità di cambiare il modello al volo direttamente dal footer del modale.
    - **Pulsanti dedicati**:
      - **Accetta**: scrive la proposta perfezionata direttamente nel box di input.
      - **Rifiuta**: chiude la vista e lascia intatta la tua bozza.
@@ -24,8 +25,10 @@ Questo repository è un **fork modernizzato e potenziato** per **DSH 0.2.x** (in
    - Obiettivo attivo (`active goal`).
    - Elenco dei task/todos in corso.
    L'LLM utilizza queste informazioni per disambiguare riferimenti come *"quel bug"* o *"questo file"*, producendo un prompt specifico e pronto per l'agente.
-4. 🤖 **Scelta del modello (indipendente dalla sessione)**:
-   Puoi far riscrivere il prompt con un modello diverso da quello della sessione (es. modello ultra-rapido come `deepseek-chat` o locale su Ollama) specificando `provider` e `model` in `cordis.patch.yml`. In assenza di configurazione, usa automaticamente il modello predefinito del profilo DSH (`agentDefaultModel`).
+4. ⚙️ **Integrazione completa nella schermata Plugin di DSH**:
+   - Pagina di configurazione dedicata accessibile direttamente dalla schermata **Plugin** di DSH (`plugins.row.config` e `plugins.bundle.config`).
+   - Rilevamento dinamico di tutti i modelli configurati nel sistema tramite l'endpoint `GET /dsh-prompt-polish/models`.
+   - **Fallback intelligente multi-PC**: In modalità `Automatico`, il plugin si adatta all'istante al modello predefinito presente su qualsiasi computer o installazione di DSH, evitando errori di modello non trovato.
 5. 🎨 **4 Stili di riscrittura selezionabili**:
    - **Bilanciato (Balanced)**: Chiaro, professionale e ben strutturato (default).
    - **Conciso (Concise)**: Diretto, essenziale, senza convenevoli.
@@ -35,50 +38,46 @@ Questo repository è un **fork modernizzato e potenziato** per **DSH 0.2.x** (in
    Anche dopo aver accettato la riscrittura, compare un pulsante ↩️ **Ripristina** nella barra strumenti per tornare alla bozza iniziale in caso di ripensamento.
 7. ⏹️ **Annullamento istantaneo (Abort/Cancel)**:
    Durante lo streaming, un clic sul pulsante ferma immediatamente la richiesta sia lato client che lato server (`AbortController`).
-8. 🌐 **Supporto multilingua completo (i18n)**:
+8. 💅 **Design armonioso con token nativi DSH**:
+   Icone vettoriali 16×16 conformi a `@deepseek-ai/dsh-client-ui-primitives`, pulsanti arrotondati ad altezza standard (28px) e hover state coerenti.
+9. 🌐 **Supporto multilingua completo (i18n)**:
    Interfaccia in Italiano, Inglese e Cinese in base alla lingua del browser; il modello preserva rigorosamente la lingua di partenza della bozza.
 
 ---
 
 ## 📥 Installazione
 
-### Aggiunta locale con `dsh plugin`
-
-Dalla cartella del progetto:
-
+### Metodo A: Installazione da GitHub / npm
 ```bash
-dsh plugin --profile web add link:D:\DshPolish
+dsh plugin --profile web add dsh-prompt-polish
 ```
 
-*(Il prefisso `link:` crea un symlink diretto alla cartella, consentendo aggiornamenti istantanei).*
-
-Poi avvia (o riavvia) la Web UI:
-
+### Metodo B: Aggiunta locale con `dsh plugin`
 ```bash
-dsh web
+dsh plugin --profile web add link:/percorso/a/dsh-prompt-polish
 ```
 
-Ricarica l'interfaccia nel browser: nella barra dell'input vedrai comparire il pulsante **🧠 Contesto**, il selettore di **Stile** e il pulsante **✨ Perfeziona**!
+Riavvia `dsh web` e ricarica il browser!
 
 ---
 
-## ⚙️ Configurazione opzionale (`cordis.patch.yml`)
+## ⚙️ Configurazione
 
-Il plugin funziona subito senza nessuna configurazione. Se vuoi usare un modello dedicato o regolare i parametri:
+Puoi configurare le preferenze del plugin:
+1. Nella schermata **Plugin** di DSH (cliccando sul pulsante **Configura** accanto a `dsh-prompt-polish`);
+2. Oppure nel file `$DSH_HOME/profiles/web/cordis.patch.yml`:
 
 ```yaml
-- insert:
     - id: prompt-polish
-      name: 'dsh-prompt-polish'
-      config:
-        style: balanced       # balanced | concise | detailed | code
-        maxTokens: 2000       # Limite token generati
-        # provider: deepseek-official # Forza un provider specifico (opzionale)
-        # model: deepseek-chat        # Forza un modello veloce specifico (opzionale)
+      name: dsh-prompt-polish
+      provider: auto      # Oppure un provider specifico: proxy, deepseek, ollama, ecc.
+      model: auto         # Oppure l'id del modello specifico
+      style: balanced     # balanced | concise | detailed | code
+      maxTokens: 2000
 ```
 
 ---
 
 ## 📄 Licenza
 
-Distribuito sotto licenza **MIT**. Consulta il file [LICENSE](./LICENSE).
+MIT. Consulta il file [LICENSE](./LICENSE).

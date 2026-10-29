@@ -27,6 +27,19 @@ export interface LocaleStrings {
   contextSummary: string
   streaming: string
   completed: string
+  settingsTitle: string
+  settingsDesc: string
+  modelLabel: string
+  modelAuto: string
+  modelDesc: string
+  defaultStyleLabel: string
+  contextDefaultLabel: string
+  contextDefaultDesc: string
+  maxTokensLabel: string
+  saveSettings: string
+  saved: string
+  modelsLoading: string
+  modelsError: string
   styles: {
     balanced: string
     concise: string
@@ -62,6 +75,19 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     contextSummary: 'Contesto rilevato',
     streaming: 'Generazione in tempo reale…',
     completed: 'Completato',
+    settingsTitle: 'Impostazioni Prompt Polish',
+    settingsDesc: 'Configura il modello LLM e i parametri di riscrittura dei prompt per questo ambiente.',
+    modelLabel: 'Modello LLM per il Polish',
+    modelAuto: '🤖 Automatico (Predefinito di DSH)',
+    modelDesc: 'Seleziona il modello da usare. In modalità Automatica, il plugin si adatterà automaticamente al modello attivo su qualsiasi computer o installazione.',
+    defaultStyleLabel: 'Stile di Riscrittura Predefinito',
+    contextDefaultLabel: 'Includi Contesto di Sessione',
+    contextDefaultDesc: 'Invia percorso del workspace, obiettivi attivi e compiti per arricchire il prompt.',
+    maxTokensLabel: 'Budget Massimo Token Risposta',
+    saveSettings: 'Salva Impostazioni',
+    saved: '✓ Impostazioni salvate con successo!',
+    modelsLoading: 'Caricamento modelli disponibili…',
+    modelsError: 'Impossibile interrogare l\'elenco modelli',
     styles: {
       balanced: 'Bilanciato',
       concise: 'Conciso',
@@ -95,6 +121,19 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     contextSummary: 'Context detected',
     streaming: 'Streaming response…',
     completed: 'Completed',
+    settingsTitle: 'Prompt Polish Settings',
+    settingsDesc: 'Configure the LLM model and prompt rewriting parameters for this environment.',
+    modelLabel: 'LLM Model for Polish',
+    modelAuto: '🤖 Automatic (DSH Default Model)',
+    modelDesc: 'Select the model to use. In Automatic mode, the plugin adapts to whichever model is active on any computer.',
+    defaultStyleLabel: 'Default Rewrite Style',
+    contextDefaultLabel: 'Include Session Context',
+    contextDefaultDesc: 'Send workspace path, active goal, and tasks to enrich prompt context.',
+    maxTokensLabel: 'Max Output Tokens Budget',
+    saveSettings: 'Save Settings',
+    saved: '✓ Settings saved successfully!',
+    modelsLoading: 'Loading available models…',
+    modelsError: 'Failed to fetch models list',
     styles: {
       balanced: 'Balanced',
       concise: 'Concise',
@@ -128,6 +167,19 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     contextSummary: '已检测上下文',
     streaming: '正在流式生成…',
     completed: '已完成',
+    settingsTitle: 'Prompt Polish 设置',
+    settingsDesc: '为此环境配置用于提示词润色的大模型与风格。',
+    modelLabel: '润色所用 LLM 模型',
+    modelAuto: '🤖 自动（DSH 当前默认模型）',
+    modelDesc: '选择要使用的模型。自动模式下，插件将自动适配各台电脑上可用的模型。',
+    defaultStyleLabel: '默认润色风格',
+    contextDefaultLabel: '附带会话上下文',
+    contextDefaultDesc: '自动包含工作区路径、活跃目标与待办任务。',
+    maxTokensLabel: '最大生成 Token 预算',
+    saveSettings: '保存设置',
+    saved: '✓ 设置已成功保存！',
+    modelsLoading: '正在加载可用模型…',
+    modelsError: '获取模型列表失败',
     styles: {
       balanced: '平衡',
       concise: '简洁',

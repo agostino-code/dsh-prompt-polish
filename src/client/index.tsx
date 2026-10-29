@@ -1,16 +1,19 @@
 /**
  * dsh-prompt-polish — browser (client) half for DeepSeek Harness (DSH) 0.2.x.
  *
- * Injects into `conversation.input.right`.
- * Provides:
- * - 🧠 Context-aware prompt enrichment (workspace path, active goal, tasks)
- * - ✨ Sparkle Polish button with SSE real-time streaming
- * - 🔍 Side-by-side Diff / Review modal with Accept, Discard & Copy (portaled to document.body)
- * - 🎨 4 Rewrite styles (Balanced, Concise, Detailed, Code)
- * - ↩️ Instant Undo button to restore original draft
- * - ⏹️ Abort / Cancel during generation
- * - 🌐 Full i18n (Italian, English, Chinese)
- * - 💅 Native DSH ghost style: horizontal layout, 16px monochrome gray icons, transparent background, interactive hover
+ * Injects into:
+ * 1. `conversation.input.right`:
+ *    - 🧠 Context-aware prompt enrichment toggle
+ *    - ✨ Sparkle Polish button with SSE real-time streaming
+ *    - 🔍 Side-by-side Diff / Review modal (portaled to document.body)
+ *    - 🎨 Rewrite styles (Balanced, Concise, Detailed, Code)
+ *    - ↩️ Instant Undo button
+ *    - ⏹️ Abort / Cancel generation
+ *
+ * 2. `plugins.row.config` & `plugins.bundle.config` (DSH Plugins Page):
+ *    - ⚙️ Plugin Configuration page right inside DSH's Plugins section
+ *    - 🤖 Dynamic Model Picker (fetched from /dsh-prompt-polish/models)
+ *    - Resilient Auto-fallback to DSH default model across different PCs
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -22,6 +25,11 @@ import { ensureStyle, PLUGIN } from './styles.ts'
 
 export const name = PLUGIN
 export const inject = ['slots']
+
+const STORAGE_STYLE_KEY = 'dsh_prompt_polish_style'
+const STORAGE_CONTEXT_KEY = 'dsh_prompt_polish_context'
+const STORAGE_MODEL_KEY = 'dsh_prompt_polish_model'
+const STORAGE_MAX_TOKENS_KEY = 'dsh_prompt_polish_max_tokens'
 
 interface WorkspaceItem {
   workspaceId?: string
@@ -39,9 +47,26 @@ interface InputRightProps {
   useProjection?: (key: string) => unknown
 }
 
+interface DiscoveredModel {
+  provider: string
+  model: string
+  name: string
+}
+
+interface ModelsResponse {
+  models: DiscoveredModel[]
+  defaultSelection: { provider: string; model: string } | null
+  configured?: {
+    provider?: string
+    model?: string
+    style?: string
+  }
+}
+
 export function apply(ctx: ClientContext): unknown {
   ensureStyle()
 
+  // 1. Input Bar Toolbar Slot
   ctx.slots.inject('conversation.input.right', () =>
     ctx.slots.register(
       {
@@ -53,13 +78,45 @@ export function apply(ctx: ClientContext): unknown {
       (props: InputRightProps) => <PromptPolishControl {...props} />,
     ),
   )
+
+  // 2. DSH Plugins Settings Page Slot (Row Configure)
+  ctx.slots.inject('plugins.row.config', () =>
+    ctx.slots.register(
+      {
+        id: `${PLUGIN}#prompt-polish`,
+        name: 'plugins.row.config',
+        key: `${PLUGIN}#prompt-polish`,
+        label: () => 'Prompt Polish Configuration',
+      },
+      ({ view }: { view?: 'summary' | 'page' }) =>
+        view === 'summary' ? (
+          <span>Ottimizzazione prompt AI con streaming SSE, stili multipli e selezione modello.</span>
+        ) : (
+          <PromptPolishSettingsForm />
+        ),
+    ),
+  )
+
+  // 3. DSH Plugins Settings Page Slot (Bundle Configure)
+  ctx.slots.inject('plugins.bundle.config', () =>
+    ctx.slots.register(
+      {
+        id: PLUGIN,
+        name: 'plugins.bundle.config',
+        key: PLUGIN,
+        label: () => 'Prompt Polish Configuration',
+      },
+      ({ view }: { view?: 'summary' | 'page' }) =>
+        view === 'summary' ? (
+          <span>Ottimizzazione prompt AI con streaming SSE, stili multipli e selezione modello.</span>
+        ) : (
+          <PromptPolishSettingsForm />
+        ),
+    ),
+  )
 }
 
-const STORAGE_STYLE_KEY = 'dsh_prompt_polish_style'
-const STORAGE_CONTEXT_KEY = 'dsh_prompt_polish_context'
-
 // Native DSH style 16x16 monochrome SVG icons
-// IconContextInjectionOutlineRegular (exact DSH geometry)
 function IconContextInjection() {
   return (
     <svg viewBox="0 0 16 16" className="pp-icon-svg" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1">
@@ -70,7 +127,6 @@ function IconContextInjection() {
   )
 }
 
-// IconEnhanceOutlineRegular (exact DSH geometry)
 function IconEnhance() {
   return (
     <svg viewBox="0 0 16 16" className="pp-icon-svg" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1">
@@ -82,7 +138,6 @@ function IconEnhance() {
   )
 }
 
-// IconListPenOutlineRegular (exact DSH geometry)
 function IconUndo() {
   return (
     <svg viewBox="0 0 16 16" className="pp-icon-svg" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1">
@@ -96,12 +151,175 @@ function IconUndo() {
   )
 }
 
-// IconChevronDownOutlineRegular (exact DSH geometry)
 function IconChevronDown() {
   return (
     <svg viewBox="0 0 16 16" width="11" height="11" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1.2">
       <path d="M3.5 6L8 10.5L12.5 6" />
     </svg>
+  )
+}
+
+/**
+ * Settings Form component rendered inside DSH's official Plugins page.
+ */
+function PromptPolishSettingsForm() {
+  const lang = detectLang()
+  const loc = LOCALES[lang]
+
+  const [models, setModels] = useState<DiscoveredModel[]>([])
+  const [defaultSelection, setDefaultSelection] = useState<{ provider: string; model: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saveMsg, setSaveMsg] = useState(false)
+
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_MODEL_KEY) || 'auto'
+    } catch {
+      return 'auto'
+    }
+  })
+
+  const [style, setStyle] = useState<PolishStyle>(() => {
+    try {
+      const s = localStorage.getItem(STORAGE_STYLE_KEY)
+      if (s === 'concise' || s === 'detailed' || s === 'code' || s === 'balanced') return s as PolishStyle
+    } catch {}
+    return 'balanced'
+  })
+
+  const [withContext, setWithContext] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_CONTEXT_KEY) !== 'false'
+    } catch {
+      return true
+    }
+  })
+
+  const [maxTokens, setMaxTokens] = useState<number>(() => {
+    try {
+      const val = parseInt(localStorage.getItem(STORAGE_MAX_TOKENS_KEY) || '2000', 10)
+      return isNaN(val) ? 2000 : val
+    } catch {
+      return 2000
+    }
+  })
+
+  useEffect(() => {
+    let alive = true
+    fetch('/dsh-prompt-polish/models')
+      .then((res) => res.json())
+      .then((data: ModelsResponse) => {
+        if (!alive) return
+        setModels(data.models || [])
+        setDefaultSelection(data.defaultSelection || null)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!alive) return
+        setLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const onSave = () => {
+    try {
+      localStorage.setItem(STORAGE_MODEL_KEY, selectedModel)
+      localStorage.setItem(STORAGE_STYLE_KEY, style)
+      localStorage.setItem(STORAGE_CONTEXT_KEY, String(withContext))
+      localStorage.setItem(STORAGE_MAX_TOKENS_KEY, String(maxTokens))
+      setSaveMsg(true)
+      setTimeout(() => setSaveMsg(false), 3000)
+    } catch {}
+  }
+
+  const defaultModelName = defaultSelection ? `${defaultSelection.model} (${defaultSelection.provider})` : ''
+
+  return (
+    <div className="pp-settings-container">
+      <div className="pp-settings-card">
+        <div className="pp-settings-header">
+          <span className="pp-settings-title">{loc.settingsTitle}</span>
+          <span className="pp-settings-subtitle">{loc.settingsDesc}</span>
+        </div>
+
+        {/* Model Selection Field */}
+        <div className="pp-settings-field">
+          <label className="pp-settings-label">{loc.modelLabel}</label>
+          <select
+            className="pp-settings-select"
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            disabled={loading}
+          >
+            <option value="auto">
+              {loc.modelAuto} {defaultModelName ? `— ${defaultModelName}` : ''}
+            </option>
+            {models.map((m) => {
+              const val = `${m.provider}:${m.model}`
+              return (
+                <option key={val} value={val}>
+                  {m.name}
+                </option>
+              )
+            })}
+          </select>
+          <span className="pp-settings-desc">{loc.modelDesc}</span>
+        </div>
+
+        {/* Default Style Selection */}
+        <div className="pp-settings-field">
+          <label className="pp-settings-label">{loc.defaultStyleLabel}</label>
+          <select
+            className="pp-settings-select"
+            value={style}
+            onChange={(e) => setStyle(e.target.value as PolishStyle)}
+          >
+            <option value="balanced">{loc.styles.balanced}</option>
+            <option value="concise">{loc.styles.concise}</option>
+            <option value="detailed">{loc.styles.detailed}</option>
+            <option value="code">{loc.styles.code}</option>
+          </select>
+        </div>
+
+        {/* Context Injection Toggle */}
+        <div className="pp-settings-field">
+          <label className="pp-settings-checkbox-row">
+            <input
+              type="checkbox"
+              className="pp-settings-checkbox"
+              checked={withContext}
+              onChange={(e) => setWithContext(e.target.checked)}
+            />
+            <span className="pp-settings-label">{loc.contextDefaultLabel}</span>
+          </label>
+          <span className="pp-settings-desc">{loc.contextDefaultDesc}</span>
+        </div>
+
+        {/* Max Tokens Field */}
+        <div className="pp-settings-field">
+          <label className="pp-settings-label">{loc.maxTokensLabel}</label>
+          <input
+            type="number"
+            className="pp-settings-input"
+            min={100}
+            max={8000}
+            step={100}
+            value={maxTokens}
+            onChange={(e) => setMaxTokens(parseInt(e.target.value, 10) || 2000)}
+          />
+        </div>
+
+        {/* Footer Actions */}
+        <div className="pp-settings-footer">
+          <button type="button" className="pp-settings-save-btn" onClick={onSave}>
+            {loc.saveSettings}
+          </button>
+          {saveMsg && <span className="pp-settings-msg">{loc.saved}</span>}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -125,9 +343,7 @@ function PromptPolishControl({
       if (saved === 'concise' || saved === 'detailed' || saved === 'code' || saved === 'balanced') {
         return saved as PolishStyle
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
     return 'balanced'
   })
 
@@ -140,17 +356,46 @@ function PromptPolishControl({
     }
   })
 
+  // Selected Model state
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_MODEL_KEY) || 'auto'
+    } catch {
+      return 'auto'
+    }
+  })
+
+  const [availableModels, setAvailableModels] = useState<DiscoveredModel[]>([])
+  const [defaultModelInfo, setDefaultModelInfo] = useState<{ provider: string; model: string } | null>(null)
+
   // Diff / Review modal state
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewOriginal, setPreviewOriginal] = useState('')
   const [previewPolished, setPreviewPolished] = useState('')
   const [previewStatus, setPreviewStatus] = useState<'streaming' | 'completed' | 'error'>('streaming')
+  const [activeRouteInfo, setActiveRouteInfo] = useState<string>('')
   const [copied, setCopied] = useState(false)
 
   const abortControllerRef = useRef<AbortController | null>(null)
   const aliveRef = useRef(true)
   const lang = detectLang()
   const loc = LOCALES[lang]
+
+  // Load available models on mount
+  useEffect(() => {
+    let alive = true
+    fetch('/dsh-prompt-polish/models')
+      .then((res) => res.json())
+      .then((data: ModelsResponse) => {
+        if (!alive) return
+        setAvailableModels(data.models || [])
+        setDefaultModelInfo(data.defaultSelection || null)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
 
   // Extract session context through DSH hooks
   const workspacesList = useWorkspaces?.((s) => s.items) as readonly WorkspaceItem[] | undefined
@@ -191,9 +436,7 @@ function PromptPolishControl({
     setStyle(val)
     try {
       localStorage.setItem(STORAGE_STYLE_KEY, val)
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   const toggleContext = () => {
@@ -201,9 +444,7 @@ function PromptPolishControl({
       const next = !prev
       try {
         localStorage.setItem(STORAGE_CONTEXT_KEY, String(next))
-      } catch {
-        // ignore
-      }
+      } catch {}
       return next
     })
   }
@@ -232,6 +473,7 @@ function PromptPolishControl({
     setPreviewOriginal(text)
     setPreviewPolished('')
     setPreviewStatus('streaming')
+    setActiveRouteInfo('')
     setPreviewOpen(true)
     setCopied(false)
 
@@ -246,6 +488,14 @@ function PromptPolishControl({
         }
       : undefined
 
+    let reqProvider: string | undefined
+    let reqModel: string | undefined
+    if (selectedModel && selectedModel !== 'auto' && selectedModel.includes(':')) {
+      const parts = selectedModel.split(':')
+      reqProvider = parts[0]
+      reqModel = parts.slice(1).join(':')
+    }
+
     try {
       const resp = await fetch('/dsh-prompt-polish/polish', {
         method: 'POST',
@@ -257,6 +507,8 @@ function PromptPolishControl({
           text,
           style,
           sessionId,
+          provider: reqProvider,
+          model: reqModel,
           stream: true,
           context: contextData,
         }),
@@ -297,6 +549,8 @@ function PromptPolishControl({
               delta?: string
               text?: string
               truncated?: boolean
+              provider?: string
+              model?: string
               error?: string
             }
 
@@ -312,14 +566,15 @@ function PromptPolishControl({
               if (aliveRef.current) {
                 setPreviewPolished(accumulated)
                 setPreviewStatus('completed')
+                if (ev.model) {
+                  setActiveRouteInfo(`${ev.model}${ev.provider ? ` (${ev.provider})` : ''}`)
+                }
                 if (ev.truncated) setError(loc.truncated)
               }
             } else if (ev.type === 'error') {
               throw new Error(ev.error || loc.failed)
             }
-          } catch (parseErr) {
-            // ignore malformed lines
-          }
+          } catch {}
         }
       }
 
@@ -340,7 +595,7 @@ function PromptPolishControl({
         abortControllerRef.current = null
       }
     }
-  }, [busy, inputActions, text, style, sessionId, withContext, activeCwd, goalObj, todosList, loc, onCancel])
+  }, [busy, inputActions, text, style, sessionId, withContext, selectedModel, activeCwd, goalObj, todosList, loc, onCancel])
 
   const onAccept = () => {
     if (inputActions && previewPolished.trim().length > 0) {
@@ -363,9 +618,7 @@ function PromptPolishControl({
       setTimeout(() => {
         if (aliveRef.current) setCopied(false)
       }, 2500)
-    } catch {
-      // fallback
-    }
+    } catch {}
   }
 
   const onUndo = useCallback(() => {
@@ -376,7 +629,14 @@ function PromptPolishControl({
     }
   }, [originalDraft, inputActions])
 
-  // Portaled Modal JSX (rendered onto document.body to avoid breaking composer bar layout)
+  const handleModalModelChange = (newVal: string) => {
+    setSelectedModel(newVal)
+    try {
+      localStorage.setItem(STORAGE_MODEL_KEY, newVal)
+    } catch {}
+  }
+
+  // Portaled Modal JSX
   const modalPortal =
     previewOpen && typeof document !== 'undefined'
       ? createPortal(
@@ -433,10 +693,31 @@ function PromptPolishControl({
                     </>
                   ) : (
                     <span>
-                      {withContext ? '🧠 Context-Aware · ' : ''}
+                      {withContext ? '🧠 Context · ' : ''}
+                      {activeRouteInfo ? `🤖 ${activeRouteInfo} · ` : ''}
                       {loc.completed}
                     </span>
                   )}
+                </div>
+
+                {/* Model switcher directly in review modal */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <span style={{ color: 'var(--dsw-alias-label-secondary)' }}>Model:</span>
+                  <select
+                    className="pp-select"
+                    style={{ height: 26, fontSize: 12, paddingRight: 16 }}
+                    value={selectedModel}
+                    onChange={(e) => handleModalModelChange(e.target.value)}
+                  >
+                    <option value="auto">
+                      Auto ({defaultModelInfo ? defaultModelInfo.model : 'DSH Default'})
+                    </option>
+                    {availableModels.map((m) => (
+                      <option key={`${m.provider}:${m.model}`} value={`${m.provider}:${m.model}`}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="pp-foot-actions">
@@ -544,7 +825,7 @@ function PromptPolishControl({
         )}
       </div>
 
-      {/* Body-portaled modal (does not touch or break the input bar layout) */}
+      {/* Body-portaled modal */}
       {modalPortal}
     </>
   )

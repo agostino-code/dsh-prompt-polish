@@ -1,16 +1,19 @@
 /**
  * dsh-prompt-polish — Node (server) half for DeepSeek Harness (DSH) 0.2.x.
  *
- * Registers POST /dsh-prompt-polish/polish:
- * - Supports real-time Server-Sent Events (SSE) streaming (stream: true or Accept: text/event-stream)
- * - Supports traditional JSON unary response
- * - Supports session context injection (cwd, active goal, tasks/todos, recent messages)
- * - Dynamic model resolution order: request body > config > ctx.agentDefaultModel
- * - Multi-style rewriting: balanced, concise, detailed, code
+ * Registers:
+ * - POST /dsh-prompt-polish/polish: Real-time SSE streaming or unary JSON prompt rewriting
+ * - GET  /dsh-prompt-polish/models: Dynamic discovery of available models across all providers
+ *
+ * Features:
+ * - Resilient multi-tier model resolution: Body Request > Plugin Config > Host Agent Default > First Available
+ * - Session context injection (cwd, active goal, tasks/todos, recent discussion)
+ * - Multi-style prompt rewriting: Balanced, Concise, Detailed, Code
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 import {
   BlockAssembler,
   createUserMessage,
@@ -46,6 +49,14 @@ export interface Config {
   style?: PolishStyle
   maxTokens?: number
 }
+
+/** Schemastery validation for Cordis configuration */
+export const Config = z.object({
+  provider: z.string().default('auto').description('LLM provider ID for prompt polish (or "auto" for active DSH model)'),
+  model: z.string().default('auto').description('LLM model ID for prompt polish (or "auto" for active DSH model)'),
+  style: z.union([z.const('balanced'), z.const('concise'), z.const('detailed'), z.const('code')]).default('balanced'),
+  maxTokens: z.number().default(2000),
+})
 
 const DEFAULT_MAX_TOKENS = 2000
 const DEFAULT_MAX_INPUT_BYTES = 35000
@@ -159,30 +170,76 @@ function sameOrigin(request: IncomingMessage): boolean {
   }
 }
 
-function resolveRoute(
+async function listAvailableModels(ctx: Context): Promise<{
+  models: Array<{ provider: string; model: string; name: string }>
+  defaultSelection: { provider: string; model: string } | null
+}> {
+  const models: Array<{ provider: string; model: string; name: string }> = []
+  try {
+    const providers = ctx.llm.listProviders()
+    for (const p of providers) {
+      try {
+        const pModels = await ctx.llm.listModels(p.id)
+        for (const m of pModels) {
+          models.push({
+            provider: p.id,
+            model: m.id,
+            name: m.name ? `${m.name} (${p.name || p.id})` : `${m.id} (${p.name || p.id})`,
+          })
+        }
+      } catch {
+        // provider interrogation may fail or be offline, ignore
+      }
+    }
+  } catch {
+    // llm service error
+  }
+
+  let defaultSelection: { provider: string; model: string } | null = null
+  try {
+    const agentDefault = (ctx as unknown as { agentDefaultModel?: { currentSelection(): { provider?: string; model?: string } } }).agentDefaultModel
+    const sel = agentDefault?.currentSelection()
+    if (sel?.provider && sel?.model) {
+      defaultSelection = { provider: sel.provider, model: sel.model }
+    }
+  } catch {
+    // ignore
+  }
+
+  return { models, defaultSelection }
+}
+
+async function resolveRoute(
   bodyProvider: unknown,
   bodyModel: unknown,
   config: Config,
   ctx: Context
-): { provider: string; model: string } | null {
+): Promise<{ provider: string; model: string } | null> {
+  // 1. Explicit request body (from user UI picker)
   if (
     typeof bodyProvider === 'string' &&
     typeof bodyModel === 'string' &&
     bodyProvider.length > 0 &&
-    bodyModel.length > 0
+    bodyModel.length > 0 &&
+    bodyProvider !== 'auto' &&
+    bodyModel !== 'auto'
   ) {
     return { provider: bodyProvider, model: bodyModel }
   }
 
+  // 2. Configured provider/model in plugin settings
   if (
     typeof config.provider === 'string' &&
     typeof config.model === 'string' &&
     config.provider.length > 0 &&
-    config.model.length > 0
+    config.model.length > 0 &&
+    config.provider !== 'auto' &&
+    config.model !== 'auto'
   ) {
     return { provider: config.provider, model: config.model }
   }
 
+  // 3. Fallback to active agent default model on current host
   try {
     const agentDefault = (ctx as unknown as { agentDefaultModel?: { currentSelection(): { provider?: string; model?: string } } }).agentDefaultModel
     const selection = agentDefault?.currentSelection()
@@ -193,6 +250,23 @@ function resolveRoute(
     // Service not loaded or unselected
   }
 
+  // 4. Fallback to first available model from any registered provider
+  try {
+    const providers = ctx.llm.listProviders()
+    for (const p of providers) {
+      try {
+        const pModels = await ctx.llm.listModels(p.id)
+        if (pModels.length > 0) {
+          return { provider: p.id, model: pModels[0].id }
+        }
+      } catch {
+        // continue
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   return null
 }
 
@@ -201,7 +275,32 @@ export function apply(ctx: Context, config: Config = {}): unknown {
   const defaultStyle: PolishStyle = config.style ?? 'balanced'
 
   return ctx.effect(() => {
-    const dispose = ctx.webServer.register({
+    // 1. Model Discovery Endpoint
+    const disposeModels = ctx.webServer.register({
+      kind: 'exact',
+      path: '/dsh-prompt-polish/models',
+      handler: async (request: IncomingMessage, response: ServerResponse) => {
+        if (request.method !== 'GET') {
+          response.writeHead(405, { allow: 'GET' })
+          response.end()
+          return
+        }
+
+        const { models, defaultSelection } = await listAvailableModels(ctx)
+        sendJson(response, 200, {
+          models,
+          defaultSelection,
+          configured: {
+            provider: config.provider || 'auto',
+            model: config.model || 'auto',
+            style: config.style || 'balanced',
+          },
+        })
+      },
+    })
+
+    // 2. Prompt Polish Endpoint
+    const disposePolish = ctx.webServer.register({
       kind: 'exact',
       path: '/dsh-prompt-polish/polish',
       handler: async (request: IncomingMessage, response: ServerResponse) => {
@@ -246,7 +345,7 @@ export function apply(ctx: Context, config: Config = {}): unknown {
 
         const context = typeof body.context === 'object' && body.context !== null ? (body.context as PolishContextData) : undefined
 
-        const route = resolveRoute(body.provider, body.model, config, ctx)
+        const route = await resolveRoute(body.provider, body.model, config, ctx)
         if (route === null) {
           sendJson(response, 400, {
             error: 'no model route available (configure a model in DSH Settings or specify provider/model in plugin config)',
@@ -377,6 +476,9 @@ export function apply(ctx: Context, config: Config = {}): unknown {
       },
     })
 
-    return () => dispose()
+    return () => {
+      disposeModels()
+      disposePolish()
+    }
   })
 }

@@ -283,6 +283,7 @@ export const CSS = `
   border-top: 1px solid var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.16)) !important;
   background: var(--dsw-alias-bg-surface-l2, rgba(0, 0, 0, 0.15)) !important;
   gap: 12px !important;
+  flex-wrap: wrap !important;
 }
 
 .pp-foot-status {
@@ -324,6 +325,128 @@ export const CSS = `
 
 .pp-action-btn-primary:hover {
   filter: brightness(1.1) !important;
+}
+
+/* DSH Plugin Settings Page View */
+.pp-settings-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  padding: 4px !important;
+  max-width: 680px !important;
+  color: var(--dsw-alias-label-primary, #e0e0e0) !important;
+  font-family: inherit !important;
+}
+
+.pp-settings-card {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  background: var(--dsw-alias-bg-layer-2, rgba(255, 255, 255, 0.03)) !important;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.2)) !important;
+  border-radius: var(--dsw-radius-panel, 12px) !important;
+  padding: 20px 24px !important;
+}
+
+.pp-settings-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  margin-bottom: 4px !important;
+}
+
+.pp-settings-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--dsw-alias-label-primary, #ffffff) !important;
+}
+
+.pp-settings-subtitle {
+  font-size: 13px !important;
+  color: var(--dsw-alias-label-secondary, #9ca3af) !important;
+  line-height: 1.4 !important;
+}
+
+.pp-settings-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.pp-settings-label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--dsw-alias-label-primary, #ffffff) !important;
+}
+
+.pp-settings-desc {
+  font-size: 12px !important;
+  color: var(--dsw-alias-label-tertiary, #888888) !important;
+  line-height: 1.4 !important;
+}
+
+.pp-settings-input,
+.pp-settings-select {
+  height: 32px !important;
+  padding: 0 10px !important;
+  background: var(--dsw-alias-bg-surface-l1, rgba(0, 0, 0, 0.25)) !important;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.28)) !important;
+  border-radius: var(--dsw-radius-sm, 6px) !important;
+  color: var(--dsw-alias-label-primary, #ffffff) !important;
+  font-size: 13px !important;
+  font-family: inherit !important;
+  outline: none !important;
+  transition: border-color 0.15s ease !important;
+}
+
+.pp-settings-input:focus,
+.pp-settings-select:focus {
+  border-color: var(--dsw-alias-state-business-primary, #4a7cff) !important;
+}
+
+.pp-settings-checkbox-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.pp-settings-checkbox {
+  width: 16px !important;
+  height: 16px !important;
+  cursor: pointer !important;
+  accent-color: #2563eb !important;
+}
+
+.pp-settings-footer {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  margin-top: 8px !important;
+}
+
+.pp-settings-save-btn {
+  height: 32px !important;
+  padding: 0 18px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  border-radius: var(--dsw-radius-sm, 6px) !important;
+  background: var(--dsw-alias-brand-primary, #2563eb) !important;
+  color: #ffffff !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.pp-settings-save-btn:hover {
+  opacity: 0.9 !important;
+}
+
+.pp-settings-msg {
+  font-size: 12px !important;
+  color: #10b981 !important;
+  font-weight: 500 !important;
 }
 
 @keyframes ppSpin {
