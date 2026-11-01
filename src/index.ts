@@ -512,12 +512,17 @@ export function apply(ctx: Context, config: Config = {}): unknown {
           return
         }
 
+        const langDirective =
+          outputLang === 'en'
+            ? 'Produce the final polished prompt strictly in ENGLISH (translate non-English text to English while preserving code, identifiers, and paths verbatim).'
+            : 'Strictly preserve the original language of the draft.'
+
         const messages: Message[] = [
           createUserMessage({
             content: [
               {
                 type: 'text',
-                text: `Draft to polish:\n"""\n${text}\n"""`,
+                text: `Target output language: ${outputLang === 'en' ? 'ENGLISH' : 'SAME AS DRAFT'}\n${langDirective}\n\nDraft to polish:\n"""\n${text}\n"""`,
               },
             ],
             source: { kind: 'user' },

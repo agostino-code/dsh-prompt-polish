@@ -810,7 +810,7 @@ function PromptPolishControl({
           aria-pressed={forceEnglish}
         >
           <IconOutputLang />
-          <span>{loc.outputLang}</span>
+          <span>{forceEnglish ? loc.outputLangEn : loc.outputLangAuto}</span>
         </button>
 
         {/* Native DSH trigger: Style dropdown with custom chevron */}

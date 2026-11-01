@@ -26,6 +26,8 @@ export interface LocaleStrings {
   contextTooltipInactive: string
   contextSummary: string
   outputLang: string
+  outputLangAuto: string
+  outputLangEn: string
   outputLangTooltipAuto: string
   outputLangTooltipEn: string
   streaming: string
@@ -76,7 +78,9 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     contextTooltipActive: 'Contesto di sessione ATTIVO (include workspace, panoramica progetto, ultimi prompt, goal e task)',
     contextTooltipInactive: 'Contesto di sessione DISATTIVO (clicca per attivare)',
     contextSummary: 'Contesto rilevato',
-    outputLang: 'EN',
+    outputLang: 'Lingua Output',
+    outputLangAuto: 'Auto',
+    outputLangEn: 'EN',
     outputLangTooltipAuto: 'Output nella lingua della bozza (clicca per forzare l\'inglese)',
     outputLangTooltipEn: 'Output forzato in INGLESE (clicca per tornare alla lingua della bozza)',
     streaming: 'Generazione in tempo reale…',
@@ -125,7 +129,9 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     contextTooltipActive: 'Session context ACTIVE (includes workspace, project overview, recent prompts, goal, and tasks)',
     contextTooltipInactive: 'Session context INACTIVE (click to enable)',
     contextSummary: 'Context detected',
-    outputLang: 'EN',
+    outputLang: 'Output Language',
+    outputLangAuto: 'Auto',
+    outputLangEn: 'EN',
     outputLangTooltipAuto: 'Output in the draft language (click to force English)',
     outputLangTooltipEn: 'Output forced to ENGLISH (click to return to the draft language)',
     streaming: 'Streaming response…',
@@ -174,7 +180,9 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     contextTooltipActive: '会话上下文已启用（附带工作区、项目概览、近期提示词、目标与任务）',
     contextTooltipInactive: '会话上下文已关闭（点击开启）',
     contextSummary: '已检测上下文',
-    outputLang: 'EN',
+    outputLang: '输出语言',
+    outputLangAuto: 'Auto',
+    outputLangEn: 'EN',
     outputLangTooltipAuto: '按草稿语言输出（点击强制英文）',
     outputLangTooltipEn: '强制输出英文（点击恢复草稿语言）',
     streaming: '正在流式生成…',
