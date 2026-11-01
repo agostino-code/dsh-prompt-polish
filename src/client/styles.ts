@@ -78,6 +78,18 @@ export const CSS = `
   background: var(--dsw-alias-label-caption, #4b5563) !important;
 }
 
+/* Output language toggle state indicator */
+.pp-btn-lang-active {
+  color: var(--dsw-alias-label-primary, #ffffff) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  background: rgba(59, 130, 246, 0.12) !important;
+}
+
+.pp-btn-lang-auto {
+  color: var(--dsw-alias-label-tertiary, #6b7280) !important;
+  opacity: 0.7 !important;
+}
+
 /* Polishing in-flight state */
 .pp-btn-busy {
   color: #f59e0b !important;

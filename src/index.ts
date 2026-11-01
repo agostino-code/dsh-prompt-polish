@@ -36,11 +36,18 @@ export const inject = ['webServer', 'llm']
 
 export type PolishStyle = 'balanced' | 'concise' | 'detailed' | 'code'
 
+/** 'auto' preserves the draft language; 'en' forces the polished output into English */
+export type OutputLang = 'auto' | 'en'
+
 export interface PolishContextData {
   cwd?: string
   goal?: string
   todos?: string[]
   recentContext?: string
+  /** Server-side enriched: last user prompts from the session log */
+  recentPrompts?: string[]
+  /** Server-side enriched: short project summary (manifest, README, root layout) */
+  projectOverview?: string
 }
 
 export interface Config {
@@ -80,11 +87,16 @@ function terminalError(finish: FinishReason): Error | undefined {
   }
 }
 
-function getSystemPrompt(style: PolishStyle, context?: PolishContextData): string {
+function getSystemPrompt(style: PolishStyle, context?: PolishContextData, outputLang: OutputLang = 'auto'): string {
+  const languageRule =
+    outputLang === 'en'
+      ? 'CRITICAL: Regardless of the language of the draft, produce the final polished prompt in English. Faithfully translate any non-English content (keep code, identifiers, file paths and technical terms verbatim).'
+      : 'CRITICAL: Strictly preserve the original language of the draft (e.g. Italian in -> Italian out, English in -> English out, Chinese in -> Chinese out).'
+
   const commonInstructions = [
     'You are an expert prompt engineer and writing assistant.',
     'Rewrite the user-provided draft into an optimized, high-quality prompt that an AI model can understand and execute flawlessly.',
-    'CRITICAL: Strictly preserve the original language of the draft (e.g. Italian in -> Italian out, English in -> English out, Chinese in -> Chinese out).',
+    languageRule,
     'Do not invent requirements, change core intent, or fabricate facts.',
     'Return ONLY the raw rewritten prompt text. Do not include commentary, explanations, greetings, quotes, or markdown code fence wrappers (```).'
   ]
@@ -122,21 +134,152 @@ function getSystemPrompt(style: PolishStyle, context?: PolishContextData): strin
   }
 
   let contextInstructions = ''
-  if (context && (context.cwd || context.goal || (context.todos && context.todos.length > 0) || context.recentContext)) {
+  if (
+    context &&
+    (context.cwd ||
+      context.goal ||
+      (context.todos && context.todos.length > 0) ||
+      context.recentContext ||
+      (context.recentPrompts && context.recentPrompts.length > 0) ||
+      context.projectOverview)
+  ) {
     const parts: string[] = ['[Active Session Context - for reference only]']
     if (context.cwd) parts.push(`- Project Workspace Directory: ${context.cwd}`)
+    if (context.projectOverview) parts.push(`- Project Overview:\n${context.projectOverview}`)
     if (context.goal) parts.push(`- Active Goal: ${context.goal}`)
     if (context.todos && context.todos.length > 0) {
       parts.push(`- Current Tasks: ${context.todos.slice(0, 5).join('; ')}`)
     }
+    if (context.recentPrompts && context.recentPrompts.length > 0) {
+      parts.push(`- Recent User Prompts (oldest to newest):\n${context.recentPrompts.map((p) => `  * ${p}`).join('\n')}`)
+    }
     if (context.recentContext) parts.push(`- Recent Discussion: ${context.recentContext.slice(0, 300)}`)
     parts.push(
-      'Use the above session context ONLY to clarify ambiguous references (e.g. resolve "the bug" or "this file" to the actual paths or technologies), without hallucinating.'
+      'Use the above session context ONLY to clarify ambiguous references (e.g. resolve "the bug" or "this file" to the actual paths or technologies) and to keep terminology, naming and scope coherent with the project. Do not hallucinate or invent facts.'
     )
     contextInstructions = parts.join('\n')
   }
 
   return [commonInstructions.join('\n'), styleInstructions, contextInstructions].filter(Boolean).join('\n\n')
+}
+
+/**
+ * Collect the last few user prompts from the session log (server-side),
+ * so the polished prompt stays coherent with what the user has been asking.
+ */
+function collectRecentPrompts(ctx: Context, sessionId: unknown, limit = 5): string[] {
+  if (typeof sessionId !== 'string' || sessionId.length === 0) return []
+  try {
+    const sessions = (ctx as unknown as {
+      sessions?: { get(id: string): { deriveMessages(): Message[] } | undefined }
+    }).sessions
+    const session = sessions?.get(sessionId)
+    if (!session) return []
+    const messages = session.deriveMessages()
+    const prompts: string[] = []
+    for (let i = messages.length - 1; i >= 0 && prompts.length < limit; i--) {
+      const msg = messages[i]
+      if (msg.role !== 'user') continue
+      const text = msg.content
+        .filter((block): block is Extract<(typeof msg.content)[number], { type: 'text' }> => block.type === 'text')
+        .map((block) => block.text)
+        .join(' ')
+        .trim()
+      if (text.length === 0) continue
+      prompts.unshift(text.length > 200 ? `${text.slice(0, 200)}…` : text)
+    }
+    return prompts
+  } catch {
+    // session not found or log unreadable: degrade gracefully
+    return []
+  }
+}
+
+/**
+ * Build a compact project overview (manifest, README head, root layout)
+ * so the polished prompt never proposes something incoherent with the project.
+ */
+async function buildProjectOverview(cwd: string): Promise<string | undefined> {
+  const fsP = await import('node:fs/promises')
+  const pathP = await import('node:path')
+  const root = pathP.resolve(cwd)
+  const parts: string[] = []
+
+  const readFileSafe = async (rel: string, maxBytes: number): Promise<string | undefined> => {
+    try {
+      const buf = await fsP.readFile(pathP.join(root, rel))
+      const text = buf.subarray(0, maxBytes).toString('utf8')
+      return text.trim() || undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  const manifestRaw = await readFileSafe('package.json', 4000)
+  if (manifestRaw) {
+    try {
+      const pkg = JSON.parse(manifestRaw) as {
+        name?: string
+        description?: string
+        scripts?: Record<string, string>
+        dependencies?: Record<string, unknown>
+        devDependencies?: Record<string, unknown>
+      }
+      const bits: string[] = []
+      if (pkg.name) bits.push(`name: ${pkg.name}`)
+      if (pkg.description) bits.push(`description: ${pkg.description}`)
+      const deps = Object.keys(pkg.dependencies ?? {}).slice(0, 12)
+      if (deps.length > 0) bits.push(`dependencies: ${deps.join(', ')}`)
+      const scripts = Object.keys(pkg.scripts ?? {}).slice(0, 8)
+      if (scripts.length > 0) bits.push(`scripts: ${scripts.join(', ')}`)
+      if (bits.length > 0) parts.push(`package.json → ${bits.join(' | ')}`)
+    } catch {
+      // malformed manifest: skip
+    }
+  }
+
+  const pyproject = await readFileSafe('pyproject.toml', 1500)
+  if (pyproject) {
+    const nameMatch = pyproject.match(/name\s*=\s*"([^"]+)"/)
+    const descMatch = pyproject.match(/description\s*=\s*"([^"]+)"/)
+    const bits: string[] = []
+    if (nameMatch) bits.push(`name: ${nameMatch[1]}`)
+    if (descMatch) bits.push(`description: ${descMatch[1]}`)
+    if (bits.length > 0) parts.push(`pyproject.toml → ${bits.join(' | ')}`)
+  }
+
+  const cargo = await readFileSafe('Cargo.toml', 1500)
+  if (cargo) {
+    const nameMatch = cargo.match(/^name\s*=\s*"?([^"\n]+)"?/m)
+    const descMatch = cargo.match(/^description\s*=\s*"?([^"\n]+)"?/m)
+    const bits: string[] = []
+    if (nameMatch) bits.push(`name: ${nameMatch[1]}`)
+    if (descMatch) bits.push(`description: ${descMatch[1]}`)
+    if (bits.length > 0) parts.push(`Cargo.toml → ${bits.join(' | ')}`)
+  }
+
+  for (const readme of ['README.md', 'README.rst', 'readme.md']) {
+    const text = await readFileSafe(readme, 700)
+    if (text) {
+      const head = text.replace(/\s+/g, ' ').slice(0, 500)
+      parts.push(`${readme} (excerpt): ${head}`)
+      break
+    }
+  }
+
+  try {
+    const entries = await fsP.readdir(root, { withFileTypes: true })
+    const dirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith('.')).map((e) => `${e.name}/`)
+    const files = entries.filter((e) => e.isFile() && !e.name.startsWith('.')).map((e) => e.name)
+    const layout = [...dirs.slice(0, 15), ...files.slice(0, 15)].join(', ')
+    if (layout) parts.push(`Root layout: ${layout}`)
+  } catch {
+    // unreadable directory: skip
+  }
+
+  if (parts.length === 0) return undefined
+  const overview = parts.join('\n').slice(0, 1500)
+  return overview
 }
 
 async function readJsonBody(request: IncomingMessage, maxBytes = 40000): Promise<Record<string, unknown>> {
@@ -345,6 +488,22 @@ export function apply(ctx: Context, config: Config = {}): unknown {
 
         const context = typeof body.context === 'object' && body.context !== null ? (body.context as PolishContextData) : undefined
 
+        // Server-side context enrichment: recent prompts (session log) + project overview (filesystem)
+        if (context) {
+          const recentPrompts = collectRecentPrompts(ctx, body.sessionId)
+          if (recentPrompts.length > 0) context.recentPrompts = recentPrompts
+          if (context.cwd) {
+            try {
+              const overview = await buildProjectOverview(context.cwd)
+              if (overview) context.projectOverview = overview
+            } catch {
+              // overview is best-effort
+            }
+          }
+        }
+
+        const outputLang: OutputLang = body.outputLang === 'en' ? 'en' : 'auto'
+
         const route = await resolveRoute(body.provider, body.model, config, ctx)
         if (route === null) {
           sendJson(response, 400, {
@@ -369,7 +528,7 @@ export function apply(ctx: Context, config: Config = {}): unknown {
           provider: route.provider,
           model: route.model,
           messages,
-          system: getSystemPrompt(style, context),
+          system: getSystemPrompt(style, context, outputLang),
           maxTokens,
         })
 

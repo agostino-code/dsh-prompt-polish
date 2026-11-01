@@ -25,6 +25,9 @@ export interface LocaleStrings {
   contextTooltipActive: string
   contextTooltipInactive: string
   contextSummary: string
+  outputLang: string
+  outputLangTooltipAuto: string
+  outputLangTooltipEn: string
   streaming: string
   completed: string
   settingsTitle: string
@@ -70,9 +73,12 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     context: 'Contesto',
     contextActive: 'Attivo',
     contextInactive: 'Disattivo',
-    contextTooltipActive: 'Contesto di sessione ATTIVO (include cartella workspace, goal e task)',
+    contextTooltipActive: 'Contesto di sessione ATTIVO (include workspace, panoramica progetto, ultimi prompt, goal e task)',
     contextTooltipInactive: 'Contesto di sessione DISATTIVO (clicca per attivare)',
     contextSummary: 'Contesto rilevato',
+    outputLang: 'EN',
+    outputLangTooltipAuto: 'Output nella lingua della bozza (clicca per forzare l\'inglese)',
+    outputLangTooltipEn: 'Output forzato in INGLESE (clicca per tornare alla lingua della bozza)',
     streaming: 'Generazione in tempo reale…',
     completed: 'Completato',
     settingsTitle: 'Impostazioni Prompt Polish',
@@ -82,7 +88,7 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     modelDesc: 'Seleziona il modello da usare. In modalità Automatica, il plugin si adatterà automaticamente al modello attivo su qualsiasi computer o installazione.',
     defaultStyleLabel: 'Stile di Riscrittura Predefinito',
     contextDefaultLabel: 'Includi Contesto di Sessione',
-    contextDefaultDesc: 'Invia percorso del workspace, obiettivi attivi e compiti per arricchire il prompt.',
+    contextDefaultDesc: 'Invia workspace, panoramica del progetto, ultimi prompt, obiettivi e compiti per arricchire il prompt.',
     maxTokensLabel: 'Budget Massimo Token Risposta',
     saveSettings: 'Salva Impostazioni',
     saved: '✓ Impostazioni salvate con successo!',
@@ -116,9 +122,12 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     context: 'Context',
     contextActive: 'Active',
     contextInactive: 'Inactive',
-    contextTooltipActive: 'Session context ACTIVE (includes workspace path, goal, and tasks)',
+    contextTooltipActive: 'Session context ACTIVE (includes workspace, project overview, recent prompts, goal, and tasks)',
     contextTooltipInactive: 'Session context INACTIVE (click to enable)',
     contextSummary: 'Context detected',
+    outputLang: 'EN',
+    outputLangTooltipAuto: 'Output in the draft language (click to force English)',
+    outputLangTooltipEn: 'Output forced to ENGLISH (click to return to the draft language)',
     streaming: 'Streaming response…',
     completed: 'Completed',
     settingsTitle: 'Prompt Polish Settings',
@@ -128,7 +137,7 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     modelDesc: 'Select the model to use. In Automatic mode, the plugin adapts to whichever model is active on any computer.',
     defaultStyleLabel: 'Default Rewrite Style',
     contextDefaultLabel: 'Include Session Context',
-    contextDefaultDesc: 'Send workspace path, active goal, and tasks to enrich prompt context.',
+    contextDefaultDesc: 'Send workspace, project overview, recent prompts, active goal, and tasks to enrich prompt context.',
     maxTokensLabel: 'Max Output Tokens Budget',
     saveSettings: 'Save Settings',
     saved: '✓ Settings saved successfully!',
@@ -162,9 +171,12 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     context: '上下文',
     contextActive: '已开启',
     contextInactive: '已关闭',
-    contextTooltipActive: '会话上下文已启用（附带工作区、目标与任务）',
+    contextTooltipActive: '会话上下文已启用（附带工作区、项目概览、近期提示词、目标与任务）',
     contextTooltipInactive: '会话上下文已关闭（点击开启）',
     contextSummary: '已检测上下文',
+    outputLang: 'EN',
+    outputLangTooltipAuto: '按草稿语言输出（点击强制英文）',
+    outputLangTooltipEn: '强制输出英文（点击恢复草稿语言）',
     streaming: '正在流式生成…',
     completed: '已完成',
     settingsTitle: 'Prompt Polish 设置',
@@ -174,7 +186,7 @@ export const LOCALES: Record<Lang, LocaleStrings> = {
     modelDesc: '选择要使用的模型。自动模式下，插件将自动适配各台电脑上可用的模型。',
     defaultStyleLabel: '默认润色风格',
     contextDefaultLabel: '附带会话上下文',
-    contextDefaultDesc: '自动包含工作区路径、活跃目标与待办任务。',
+    contextDefaultDesc: '自动包含工作区、项目概览、近期提示词、活跃目标与待办任务。',
     maxTokensLabel: '最大生成 Token 预算',
     saveSettings: '保存设置',
     saved: '✓ 设置已成功保存！',

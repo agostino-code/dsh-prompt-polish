@@ -17,16 +17,21 @@ This repository is an updated and modernized fork designed for **DSH 0.2.x** (in
    - **Copy**: Copies to clipboard without touching the input draft.
    - **Model Selector**: Change model on the fly directly inside the modal!
 3. 🧠 **Session Context Awareness**:
-   Toggleable 🧠 **Context** button includes active workspace folder, active session goal, and current tasks/todos to disambiguate references without hallucination.
-4. ⚙️ **Integrated DSH Plugins Settings Page**:
+   Toggleable 🧠 **Context** button enriches the polish with:
+   - Active workspace folder, session goal, and current tasks/todos.
+   - **Project Overview**: manifest (package.json/pyproject/Cargo), README excerpt, and root layout, so the polished prompt stays coherent with the project.
+   - **Recent Prompts**: recap of the last user prompts from the session log, to keep continuity with the ongoing conversation.
+4. 🌐 **Output Language Toggle (EN button)**:
+   By default the polished prompt stays in the draft's language. Click the 🌐 **EN** button to force the polished output into English (code, identifiers, and file paths are kept verbatim).
+5. ⚙️ **Integrated DSH Plugins Settings Page**:
    - Access plugin configuration directly from the DSH **Plugins** section (`plugins.row.config` & `plugins.bundle.config`).
    - Dynamically discovers all models available on the host via `GET /dsh-prompt-polish/models`.
    - **Resilient Multi-PC Fallback**: Set to `Automatic` to adapt to whatever models are active on any machine without errors or manual configuration.
-5. 🎨 **4 Rewrite Styles**: Balanced, Concise, Detailed, and Code.
-6. ↩️ **Instant Undo**: Restore previous draft with 1-click.
-7. ⏹️ **In-Flight Cancellation**: Stop generation immediately via `AbortController`.
-8. 💅 **Native DSH Design System**: 16×16 monochrome SVG vector icons and rounded buttons strictly conforming to DSH UI tokens.
-9. 🌐 **Full i18n & Language Preservation**: Italian, English, and Chinese UI + language preservation.
+6. 🎨 **4 Rewrite Styles**: Balanced, Concise, Detailed, and Code.
+7. ↩️ **Instant Undo**: Restore previous draft with 1-click.
+8. ⏹️ **In-Flight Cancellation**: Stop generation immediately via `AbortController`.
+9. 💅 **Native DSH Design System**: 16×16 monochrome SVG vector icons and rounded buttons strictly conforming to DSH UI tokens.
+10. 🌐 **Full i18n & Language Preservation**: Italian, English, and Chinese UI + language preservation.
 
 ---
 
@@ -49,8 +54,8 @@ Then restart `dsh web` and refresh your browser!
 ## ⚙️ Configuration
 
 You can configure Prompt Polish either:
-1. In the **DSH Plugins** settings page (`Settings -> Plugins -> dsh-prompt-polish -> Configure`);
-2. Or in `$DSH_HOME/profiles/web/cordis.patch.yml`:
+11. In the **DSH Plugins** settings page (`Settings -> Plugins -> dsh-prompt-polish -> Configure`);
+12. Or in `$DSH_HOME/profiles/web/cordis.patch.yml`:
 
 ```yaml
     - id: prompt-polish

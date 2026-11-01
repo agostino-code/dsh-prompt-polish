@@ -28,6 +28,7 @@ export const inject = ['slots']
 
 const STORAGE_STYLE_KEY = 'dsh_prompt_polish_style'
 const STORAGE_CONTEXT_KEY = 'dsh_prompt_polish_context'
+const STORAGE_OUTLANG_KEY = 'dsh_prompt_polish_output_lang'
 const STORAGE_MODEL_KEY = 'dsh_prompt_polish_model'
 const STORAGE_MAX_TOKENS_KEY = 'dsh_prompt_polish_max_tokens'
 
@@ -123,6 +124,17 @@ function IconContextInjection() {
       <path d="M2.5 7.5L5.5 10.5L13.5 2.5" />
       <path d="M5.5 5L8 7.5L10.5 5" />
       <path d="M5.5 11H10.5" />
+    </svg>
+  )
+}
+
+function IconOutputLang() {
+  return (
+    <svg viewBox="0 0 16 16" className="pp-icon-svg" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1">
+      <circle cx="8" cy="8" r="6" />
+      <path d="M2.5 6.5H13.5" />
+      <path d="M2.5 9.5H13.5" />
+      <path d="M8 2C5.8 4.7 5.8 11.3 8 14C10.2 11.3 10.2 4.7 8 2Z" />
     </svg>
   )
 }
@@ -356,6 +368,15 @@ function PromptPolishControl({
     }
   })
 
+  // Output language toggle: false = draft language, true = force English
+  const [forceEnglish, setForceEnglish] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_OUTLANG_KEY) === 'en'
+    } catch {
+      return false
+    }
+  })
+
   // Selected Model state
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     try {
@@ -449,6 +470,16 @@ function PromptPolishControl({
     })
   }
 
+  const toggleOutputLang = () => {
+    setForceEnglish((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(STORAGE_OUTLANG_KEY, next ? 'en' : 'auto')
+      } catch {}
+      return next
+    })
+  }
+
   const onCancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -511,6 +542,7 @@ function PromptPolishControl({
           model: reqModel,
           stream: true,
           context: contextData,
+          outputLang: forceEnglish ? 'en' : 'auto',
         }),
         signal: controller.signal,
       })
@@ -595,7 +627,7 @@ function PromptPolishControl({
         abortControllerRef.current = null
       }
     }
-  }, [busy, inputActions, text, style, sessionId, withContext, selectedModel, activeCwd, goalObj, todosList, loc, onCancel])
+  }, [busy, inputActions, text, style, sessionId, withContext, forceEnglish, selectedModel, activeCwd, goalObj, todosList, loc, onCancel])
 
   const onAccept = () => {
     if (inputActions && previewPolished.trim().length > 0) {
@@ -766,6 +798,19 @@ function PromptPolishControl({
             className={`pp-context-dot ${withContext ? '' : 'pp-context-dot-off'}`}
             aria-hidden="true"
           />
+        </button>
+
+        {/* Native DSH trigger: Output language toggle (draft language <-> force English) */}
+        <button
+          type="button"
+          className={`pp-btn ${forceEnglish ? 'pp-btn-lang-active' : 'pp-btn-lang-auto'}`}
+          onClick={toggleOutputLang}
+          title={forceEnglish ? loc.outputLangTooltipEn : loc.outputLangTooltipAuto}
+          aria-label={loc.outputLang}
+          aria-pressed={forceEnglish}
+        >
+          <IconOutputLang />
+          <span>{loc.outputLang}</span>
         </button>
 
         {/* Native DSH trigger: Style dropdown with custom chevron */}
